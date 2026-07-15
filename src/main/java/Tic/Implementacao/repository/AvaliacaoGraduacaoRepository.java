@@ -22,6 +22,9 @@ public interface AvaliacaoGraduacaoRepository extends JpaRepository<AvaliacaoGra
 
     List<AvaliacaoGraduacao> findByAcademiaIdAndEventoIdIn(Long academiaId, java.util.Collection<Long> eventoIds);
 
+    List<AvaliacaoGraduacao> findByAcademiaIdAndPromocaoConfirmadaTrueAndEventoStatus(Long academiaId,
+                                                                                       Tic.Implementacao.model.StatusEventoGraduacao status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from AvaliacaoGraduacao a where a.academia.id = :academiaId and a.inscricao.id = :inscricaoId")
     Optional<AvaliacaoGraduacao> findByAcademiaIdAndInscricaoIdForUpdate(@Param("academiaId") Long academiaId,

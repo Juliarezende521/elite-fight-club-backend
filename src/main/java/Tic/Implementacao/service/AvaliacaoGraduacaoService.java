@@ -27,6 +27,7 @@ public class AvaliacaoGraduacaoService {
     private final AlunoRepository alunoRepository;
     private final HistoricoGraduacaoRepository historicoRepository;
     private final NotificacaoService notificacaoService;
+    private final CertificadoGraduacaoService certificadoGraduacaoService;
     private final PermissaoService permissaoService;
     private final Clock clock;
 
@@ -37,6 +38,7 @@ public class AvaliacaoGraduacaoService {
                                      AlunoRepository alunoRepository,
                                      HistoricoGraduacaoRepository historicoRepository,
                                      NotificacaoService notificacaoService,
+                                     CertificadoGraduacaoService certificadoGraduacaoService,
                                      PermissaoService permissaoService,
                                      Clock clock) {
         this.avaliacaoRepository = avaliacaoRepository;
@@ -46,6 +48,7 @@ public class AvaliacaoGraduacaoService {
         this.alunoRepository = alunoRepository;
         this.historicoRepository = historicoRepository;
         this.notificacaoService = notificacaoService;
+        this.certificadoGraduacaoService = certificadoGraduacaoService;
         this.permissaoService = permissaoService;
         this.clock = clock;
     }
@@ -267,6 +270,7 @@ public class AvaliacaoGraduacaoService {
         evento.setStatus(StatusEventoGraduacao.CONCLUIDO);
         evento.setAtualizadoEm(LocalDateTime.now(clock));
         eventoRepository.save(evento);
+        certificadoGraduacaoService.emitirCertificadosEventoConcluido(evento);
         return painel(eventoId);
     }
 

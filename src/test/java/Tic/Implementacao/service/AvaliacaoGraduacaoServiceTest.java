@@ -240,6 +240,7 @@ class AvaliacaoGraduacaoServiceTest {
         AlunoRepository alunoRepository = mock(AlunoRepository.class);
         HistoricoGraduacaoRepository historicoRepository = mock(HistoricoGraduacaoRepository.class);
         NotificacaoService notificacaoService = mock(NotificacaoService.class);
+        CertificadoGraduacaoService certificadoGraduacaoService = mock(CertificadoGraduacaoService.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
         Clock clock = Clock.fixed(HOJE.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
@@ -272,9 +273,9 @@ class AvaliacaoGraduacaoServiceTest {
 
         AvaliacaoGraduacaoService service = new AvaliacaoGraduacaoService(avaliacaoRepository, eventoRepository,
                 inscricaoRepository, prajiedRepository, alunoRepository, historicoRepository, notificacaoService,
-                permissaoService, clock);
+                certificadoGraduacaoService, permissaoService, clock);
         return new Fixture(service, avaliacaoRepository, eventoRepository, inscricaoRepository, prajiedRepository,
-                alunoRepository, historicoRepository, notificacaoService, permissaoService, academia, atual, destino, aluno, usuario, evento, item, inscricao);
+                alunoRepository, historicoRepository, notificacaoService, certificadoGraduacaoService, permissaoService, academia, atual, destino, aluno, usuario, evento, item, inscricao);
     }
 
     private RegistrarPresencaGraduacaoRequest presenca(StatusPresencaGraduacao status, String observacao) {
@@ -416,6 +417,7 @@ class AvaliacaoGraduacaoServiceTest {
                            AlunoRepository alunoRepository,
                            HistoricoGraduacaoRepository historicoRepository,
                            NotificacaoService notificacaoService,
+                           CertificadoGraduacaoService certificadoGraduacaoService,
                            PermissaoService permissaoService,
                            Academia academia,
                            Graduacao atual,

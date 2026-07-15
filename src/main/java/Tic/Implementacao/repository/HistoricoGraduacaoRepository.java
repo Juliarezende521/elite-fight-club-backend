@@ -10,6 +10,8 @@ public interface HistoricoGraduacaoRepository extends JpaRepository<HistoricoGra
 
     List<HistoricoGraduacao> findByAcademiaIdAndAlunoIdOrderByAlteradoEmDesc(Long academiaId, Long alunoId);
 
+    List<HistoricoGraduacao> findByAcademiaIdAndAlunoIdOrderByAlteradoEmAsc(Long academiaId, Long alunoId);
+
     Optional<HistoricoGraduacao> findFirstByAcademiaIdAndAlunoIdAndNovaGraduacaoIdOrderByAlteradoEmDesc(
             Long academiaId, Long alunoId, Long novaGraduacaoId);
 

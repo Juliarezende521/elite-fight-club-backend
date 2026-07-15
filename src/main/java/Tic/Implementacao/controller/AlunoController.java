@@ -6,6 +6,9 @@ import Tic.Implementacao.dto.graduacao.AlterarGraduacaoAlunoRequest;
 import Tic.Implementacao.dto.graduacao.HistoricoGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.PromoverGraduacaoAlunoRequest;
 import Tic.Implementacao.dto.graduacao.avaliacao.AvaliacaoGraduacaoResponse;
+import Tic.Implementacao.dto.graduacao.certificado.CertificadoGraduacaoResponse;
+import Tic.Implementacao.dto.graduacao.certificado.GraduacaoAlunoResumoResponse;
+import Tic.Implementacao.dto.graduacao.certificado.HistoricoGraduacaoCompletoResponse;
 import Tic.Implementacao.dto.graduacao.convite.ConviteGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.evento.EventoGraduacaoAlunoResponse;
 import Tic.Implementacao.dto.graduacao.inscricao.InscricaoGraduacaoResponse;
@@ -14,14 +17,19 @@ import Tic.Implementacao.dto.notificacao.NotificacaoResponse;
 import Tic.Implementacao.model.Aluno;
 import Tic.Implementacao.service.AlunoService;
 import Tic.Implementacao.service.AvaliacaoGraduacaoService;
+import Tic.Implementacao.service.CertificadoGraduacaoService;
 import Tic.Implementacao.service.EventoGraduacaoService;
 import Tic.Implementacao.service.GraduacaoAlunoService;
 import Tic.Implementacao.service.NotificacaoService;
 import Tic.Implementacao.service.PagamentoService;
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,18 +43,21 @@ public class AlunoController {
     private final PagamentoService pagamentoService;
     private final AvaliacaoGraduacaoService avaliacaoGraduacaoService;
     private final NotificacaoService notificacaoService;
+    private final CertificadoGraduacaoService certificadoGraduacaoService;
 
     public AlunoController(AlunoService service, GraduacaoAlunoService graduacaoAlunoService,
                            EventoGraduacaoService eventoGraduacaoService,
                            PagamentoService pagamentoService,
                            AvaliacaoGraduacaoService avaliacaoGraduacaoService,
-                           NotificacaoService notificacaoService){
+                           NotificacaoService notificacaoService,
+                           CertificadoGraduacaoService certificadoGraduacaoService){
         this.service = service;
         this.graduacaoAlunoService = graduacaoAlunoService;
         this.eventoGraduacaoService = eventoGraduacaoService;
         this.pagamentoService = pagamentoService;
         this.avaliacaoGraduacaoService = avaliacaoGraduacaoService;
         this.notificacaoService = notificacaoService;
+        this.certificadoGraduacaoService = certificadoGraduacaoService;
     }
 
     //GET
@@ -122,9 +133,36 @@ public class AlunoController {
         return ResponseEntity.ok(graduacaoAlunoService.listarHistoricoAluno(alunoId));
     }
 
+    @GetMapping("/{alunoId}/graduacoes/historico-completo")
+    public ResponseEntity<List<HistoricoGraduacaoCompletoResponse>> historicoCompleto(@PathVariable Long alunoId) {
+        return ResponseEntity.ok(certificadoGraduacaoService.historicoCompletoAluno(alunoId));
+    }
+
+    @GetMapping(value = "/{alunoId}/graduacoes/historico-completo.csv", produces = "text/csv;charset=UTF-8")
+    public ResponseEntity<byte[]> historicoCompletoCsv(@PathVariable Long alunoId) {
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("historico-graduacao-aluno-" + alunoId + ".csv", StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
+                .body(certificadoGraduacaoService.exportarHistoricoCompletoCsv(alunoId));
+    }
+
     @GetMapping("/me/graduacoes/historico")
     public ResponseEntity<List<HistoricoGraduacaoResponse>> meuHistoricoGraduacoes() {
         return ResponseEntity.ok(graduacaoAlunoService.listarHistoricoAlunoAtual());
+    }
+
+    @GetMapping("/me/graduacoes")
+    public ResponseEntity<GraduacaoAlunoResumoResponse> minhasGraduacoes() {
+        return ResponseEntity.ok(certificadoGraduacaoService.graduacoesDoAlunoAtual());
+    }
+
+    @GetMapping("/me/certificados")
+    public ResponseEntity<List<CertificadoGraduacaoResponse>> meusCertificados() {
+        return ResponseEntity.ok(certificadoGraduacaoService.listarCertificadosDoAlunoAtual());
     }
 
     @GetMapping("/me/eventos-graduacao")

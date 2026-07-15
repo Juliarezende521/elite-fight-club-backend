@@ -20,6 +20,14 @@ public interface InscricaoGraduacaoRepository extends JpaRepository<InscricaoGra
 
     Optional<InscricaoGraduacao> findByIdAndAcademiaIdAndAlunoId(Long id, Long academiaId, Long alunoId);
 
+    Optional<InscricaoGraduacao> findByIdAndAcademiaIdAndEventoId(Long id, Long academiaId, Long eventoId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select i from InscricaoGraduacao i where i.id = :id and i.academia.id = :academiaId and i.evento.id = :eventoId")
+    Optional<InscricaoGraduacao> findByIdAndAcademiaIdAndEventoIdForUpdate(@Param("id") Long id,
+                                                                            @Param("academiaId") Long academiaId,
+                                                                            @Param("eventoId") Long eventoId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select i from InscricaoGraduacao i where i.id = :id and i.academia.id = :academiaId and i.aluno.id = :alunoId")
     Optional<InscricaoGraduacao> findByIdAndAcademiaIdAndAlunoIdForUpdate(@Param("id") Long id, @Param("academiaId") Long academiaId, @Param("alunoId") Long alunoId);

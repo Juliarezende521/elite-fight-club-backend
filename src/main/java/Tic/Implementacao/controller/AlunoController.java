@@ -5,12 +5,14 @@ import Tic.Implementacao.dto.aluno.CriarAlunoRequest;
 import Tic.Implementacao.dto.graduacao.AlterarGraduacaoAlunoRequest;
 import Tic.Implementacao.dto.graduacao.HistoricoGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.PromoverGraduacaoAlunoRequest;
+import Tic.Implementacao.dto.graduacao.avaliacao.AvaliacaoGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.convite.ConviteGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.evento.EventoGraduacaoAlunoResponse;
 import Tic.Implementacao.dto.graduacao.inscricao.InscricaoGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.inscricao.CriarPixInscricaoGraduacaoResponse;
 import Tic.Implementacao.model.Aluno;
 import Tic.Implementacao.service.AlunoService;
+import Tic.Implementacao.service.AvaliacaoGraduacaoService;
 import Tic.Implementacao.service.EventoGraduacaoService;
 import Tic.Implementacao.service.GraduacaoAlunoService;
 import Tic.Implementacao.service.PagamentoService;
@@ -29,14 +31,17 @@ public class AlunoController {
     private final GraduacaoAlunoService graduacaoAlunoService;
     private final EventoGraduacaoService eventoGraduacaoService;
     private final PagamentoService pagamentoService;
+    private final AvaliacaoGraduacaoService avaliacaoGraduacaoService;
 
     public AlunoController(AlunoService service, GraduacaoAlunoService graduacaoAlunoService,
                            EventoGraduacaoService eventoGraduacaoService,
-                           PagamentoService pagamentoService){
+                           PagamentoService pagamentoService,
+                           AvaliacaoGraduacaoService avaliacaoGraduacaoService){
         this.service = service;
         this.graduacaoAlunoService = graduacaoAlunoService;
         this.eventoGraduacaoService = eventoGraduacaoService;
         this.pagamentoService = pagamentoService;
+        this.avaliacaoGraduacaoService = avaliacaoGraduacaoService;
     }
 
     //GET
@@ -160,6 +165,16 @@ public class AlunoController {
     @PatchMapping("/me/inscricoes-graduacao/{inscricaoId}/cancelar")
     public ResponseEntity<InscricaoGraduacaoResponse> cancelarInscricaoGraduacao(@PathVariable Long inscricaoId) {
         return ResponseEntity.ok(eventoGraduacaoService.cancelarInscricaoAlunoAtual(inscricaoId));
+    }
+
+    @GetMapping("/me/avaliacoes-graduacao")
+    public ResponseEntity<List<AvaliacaoGraduacaoResponse>> minhasAvaliacoesGraduacao() {
+        return ResponseEntity.ok(avaliacaoGraduacaoService.listarAvaliacoesAlunoAtual());
+    }
+
+    @GetMapping("/me/avaliacoes-graduacao/{avaliacaoId}")
+    public ResponseEntity<AvaliacaoGraduacaoResponse> minhaAvaliacaoGraduacao(@PathVariable Long avaliacaoId) {
+        return ResponseEntity.ok(avaliacaoGraduacaoService.buscarAvaliacaoAlunoAtual(avaliacaoId));
     }
 
 

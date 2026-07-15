@@ -2,8 +2,10 @@ package Tic.Implementacao.controller;
 
 import Tic.Implementacao.dto.graduacao.convite.ConviteGraduacaoRequest;
 import Tic.Implementacao.dto.graduacao.convite.ConviteGraduacaoResponse;
+import Tic.Implementacao.dto.graduacao.avaliacao.*;
 import Tic.Implementacao.dto.graduacao.evento.*;
 import Tic.Implementacao.dto.graduacao.inscricao.InscricaoGraduacaoResponse;
+import Tic.Implementacao.service.AvaliacaoGraduacaoService;
 import Tic.Implementacao.service.EventoGraduacaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +18,11 @@ import java.util.List;
 public class EventoGraduacaoController {
 
     private final EventoGraduacaoService service;
+    private final AvaliacaoGraduacaoService avaliacaoService;
 
-    public EventoGraduacaoController(EventoGraduacaoService service) {
+    public EventoGraduacaoController(EventoGraduacaoService service, AvaliacaoGraduacaoService avaliacaoService) {
         this.service = service;
+        this.avaliacaoService = avaliacaoService;
     }
 
     @PostMapping
@@ -86,5 +90,39 @@ public class EventoGraduacaoController {
     @GetMapping("/{id}/inscricoes")
     public ResponseEntity<List<InscricaoGraduacaoResponse>> listarInscricoes(@PathVariable Long id) {
         return ResponseEntity.ok(service.listarInscricoesEvento(id));
+    }
+
+    @PutMapping("/{eventoId}/inscricoes/{inscricaoId}/presenca")
+    public ResponseEntity<AvaliacaoGraduacaoResponse> registrarPresenca(@PathVariable Long eventoId,
+                                                                         @PathVariable Long inscricaoId,
+                                                                         @Valid @RequestBody RegistrarPresencaGraduacaoRequest request) {
+        return ResponseEntity.ok(avaliacaoService.registrarPresenca(eventoId, inscricaoId, request));
+    }
+
+    @PutMapping("/{eventoId}/inscricoes/{inscricaoId}/avaliacao")
+    public ResponseEntity<AvaliacaoGraduacaoResponse> registrarAvaliacao(@PathVariable Long eventoId,
+                                                                          @PathVariable Long inscricaoId,
+                                                                          @Valid @RequestBody RegistrarAvaliacaoGraduacaoRequest request) {
+        return ResponseEntity.ok(avaliacaoService.registrarAvaliacao(eventoId, inscricaoId, request));
+    }
+
+    @PostMapping("/{eventoId}/inscricoes/{inscricaoId}/promover")
+    public ResponseEntity<AvaliacaoGraduacaoResponse> promover(@PathVariable Long eventoId,
+                                                                @PathVariable Long inscricaoId,
+                                                                @Valid @RequestBody(required = false) PromoverAlunoEventoRequest request) {
+        return ResponseEntity.ok(avaliacaoService.promoverAluno(eventoId, inscricaoId,
+                request == null ? new PromoverAlunoEventoRequest() : request));
+    }
+
+    @GetMapping("/{eventoId}/painel")
+    public ResponseEntity<PainelEventoGraduacaoResponse> painel(@PathVariable Long eventoId) {
+        return ResponseEntity.ok(avaliacaoService.painel(eventoId));
+    }
+
+    @PostMapping("/{eventoId}/concluir")
+    public ResponseEntity<PainelEventoGraduacaoResponse> concluir(@PathVariable Long eventoId,
+                                                                   @RequestBody(required = false) ConcluirEventoGraduacaoRequest request) {
+        return ResponseEntity.ok(avaliacaoService.concluirEvento(eventoId,
+                request == null ? new ConcluirEventoGraduacaoRequest() : request));
     }
 }

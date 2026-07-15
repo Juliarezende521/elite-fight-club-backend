@@ -8,5 +8,8 @@ public enum StatusInscricaoGraduacao {
     CANCELADA,
     EXPIRADA,
     AUSENTE,
+    EM_AVALIACAO,
+    APROVADA,
+    REPROVADA,
     CONCLUIDA
 }

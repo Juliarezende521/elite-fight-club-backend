@@ -12,6 +12,7 @@ public class DashboardAlunoResponse {
     private ResumoFinanceiroAlunoResponse financeiro;
     private ResumoPesoDashboardResponse evolucaoPeso;
     private ProgressoMetaPesoDashboardResponse metaPeso;
+    private ResumoAvaliacaoCorporalDashboardResponse avaliacaoCorporal;
     private ProximaAulaAlunoResponse proximaAula;
     private List<AulaAlunoResponse> aulasHoje;
     private List<AulaAlunoResponse> aulasSemana;
@@ -20,7 +21,9 @@ public class DashboardAlunoResponse {
     public DashboardAlunoResponse(Long alunoId, String nome, Boolean ativo, ResumoPrajiedResponse prajied,
                                   ResumoCheckInResponse checkIns, ResumoPlanoAlunoResponse plano,
                                   ResumoFinanceiroAlunoResponse financeiro, ResumoPesoDashboardResponse evolucaoPeso,
-                                  ProgressoMetaPesoDashboardResponse metaPeso, ProximaAulaAlunoResponse proximaAula,
+                                  ProgressoMetaPesoDashboardResponse metaPeso,
+                                  ResumoAvaliacaoCorporalDashboardResponse avaliacaoCorporal,
+                                  ProximaAulaAlunoResponse proximaAula,
                                   List<AulaAlunoResponse> aulasHoje, List<AulaAlunoResponse> aulasSemana,
                                   List<HorarioPersonalAlunoResponse> horariosFixosPersonal) {
         this.alunoId = alunoId;
@@ -32,6 +35,7 @@ public class DashboardAlunoResponse {
         this.financeiro = financeiro;
         this.evolucaoPeso = evolucaoPeso;
         this.metaPeso = metaPeso;
+        this.avaliacaoCorporal = avaliacaoCorporal;
         this.proximaAula = proximaAula;
         this.aulasHoje = aulasHoje;
         this.aulasSemana = aulasSemana;
@@ -47,6 +51,7 @@ public class DashboardAlunoResponse {
     public ResumoFinanceiroAlunoResponse getFinanceiro() { return financeiro; }
     public ResumoPesoDashboardResponse getEvolucaoPeso() { return evolucaoPeso; }
     public ProgressoMetaPesoDashboardResponse getMetaPeso() { return metaPeso; }
+    public ResumoAvaliacaoCorporalDashboardResponse getAvaliacaoCorporal() { return avaliacaoCorporal; }
     public ProximaAulaAlunoResponse getProximaAula() { return proximaAula; }
     public List<AulaAlunoResponse> getAulasHoje() { return aulasHoje; }
     public List<AulaAlunoResponse> getAulasSemana() { return aulasSemana; }

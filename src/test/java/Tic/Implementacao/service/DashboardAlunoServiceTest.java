@@ -2,6 +2,7 @@ package Tic.Implementacao.service;
 
 import Tic.Implementacao.dto.dashboard.aluno.DashboardAlunoResponse;
 import Tic.Implementacao.dto.dashboard.aluno.ProgressoMetaPesoDashboardResponse;
+import Tic.Implementacao.dto.dashboard.aluno.ResumoAvaliacaoCorporalDashboardResponse;
 import Tic.Implementacao.dto.dashboard.aluno.ResumoPesoDashboardResponse;
 import Tic.Implementacao.dto.graduacao.ElegibilidadeGraduacaoResponse;
 import Tic.Implementacao.model.*;
@@ -83,6 +84,19 @@ class DashboardAlunoServiceTest {
 
         Fixture semMeta = fixture(PerfilUsuario.ALUNO, TipoPlano.TURMA);
         assertNull(semMeta.service.buscarDashboardDoAlunoAtual().getMetaPeso());
+    }
+
+    @Test
+    void dashboardIncluiResumoAvaliacaoCorporalQuandoExisteENullQuandoNaoExiste() {
+        Fixture fx = fixture(PerfilUsuario.ALUNO, TipoPlano.TURMA);
+        ResumoAvaliacaoCorporalDashboardResponse avaliacao = new ResumoAvaliacaoCorporalDashboardResponse(90L,
+                HOJE, BigDecimal.valueOf(25), BigDecimal.valueOf(40), BigDecimal.valueOf(80), true, true);
+        when(fx.avaliacaoCorporalService.buscarResumoDashboard(20L)).thenReturn(avaliacao);
+
+        assertEquals(90L, fx.service.buscarDashboardDoAlunoAtual().getAvaliacaoCorporal().getAvaliacaoId());
+
+        Fixture semAvaliacao = fixture(PerfilUsuario.ALUNO, TipoPlano.TURMA);
+        assertNull(semAvaliacao.service.buscarDashboardDoAlunoAtual().getAvaliacaoCorporal());
     }
 
     @Test
@@ -260,6 +274,7 @@ class DashboardAlunoServiceTest {
         GraduacaoAlunoService graduacaoAlunoService = mock(GraduacaoAlunoService.class);
         EvolucaoPesoService evolucaoPesoService = mock(EvolucaoPesoService.class);
         MetaPesoService metaPesoService = mock(MetaPesoService.class);
+        AvaliacaoCorporalService avaliacaoCorporalService = mock(AvaliacaoCorporalService.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
         Clock clock = Clock.fixed(HOJE.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
@@ -284,15 +299,16 @@ class DashboardAlunoServiceTest {
         when(pagamentoRepository.findFirstByAcademiaIdAndFaturaIdAndMetodoAndStatusInOrderByCriadoEmDesc(anyLong(), anyLong(), any(), any())).thenReturn(Optional.empty());
         when(evolucaoPesoService.buscarResumoDashboard(20L)).thenReturn(null);
         when(metaPesoService.buscarResumoDashboard(20L)).thenReturn(null);
+        when(avaliacaoCorporalService.buscarResumoDashboard(20L)).thenReturn(null);
 
         DashboardAlunoService service = new DashboardAlunoService(alunoRepository, graduacaoRepository, checkInRepository,
                 reservaRepository, aulaPersonalRepository, agendaPersonalRepository, faturaRepository, pagamentoRepository,
                 sessaoCheckInRepository, presencaAulaRepository, graduacaoAlunoService, evolucaoPesoService,
-                metaPesoService, permissaoService, clock);
+                metaPesoService, avaliacaoCorporalService, permissaoService, clock);
         return new Fixture(service, alunoRepository, graduacaoRepository, checkInRepository, reservaRepository,
                 aulaPersonalRepository, agendaPersonalRepository, faturaRepository, pagamentoRepository,
                 sessaoCheckInRepository, presencaAulaRepository, graduacaoAlunoService, evolucaoPesoService,
-                metaPesoService, permissaoService, academia, aluno, atual, proxima, usuario);
+                metaPesoService, avaliacaoCorporalService, permissaoService, academia, aluno, atual, proxima, usuario);
     }
 
     private Academia academia() {
@@ -465,6 +481,7 @@ class DashboardAlunoServiceTest {
                            GraduacaoAlunoService graduacaoAlunoService,
                            EvolucaoPesoService evolucaoPesoService,
                            MetaPesoService metaPesoService,
+                           AvaliacaoCorporalService avaliacaoCorporalService,
                            PermissaoService permissaoService,
                            Academia academia,
                            Aluno aluno,

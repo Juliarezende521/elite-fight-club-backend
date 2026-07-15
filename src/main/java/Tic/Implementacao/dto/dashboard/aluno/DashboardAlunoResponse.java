@@ -11,6 +11,7 @@ public class DashboardAlunoResponse {
     private ResumoPlanoAlunoResponse plano;
     private ResumoFinanceiroAlunoResponse financeiro;
     private ResumoPesoDashboardResponse evolucaoPeso;
+    private ProgressoMetaPesoDashboardResponse metaPeso;
     private ProximaAulaAlunoResponse proximaAula;
     private List<AulaAlunoResponse> aulasHoje;
     private List<AulaAlunoResponse> aulasSemana;
@@ -19,7 +20,7 @@ public class DashboardAlunoResponse {
     public DashboardAlunoResponse(Long alunoId, String nome, Boolean ativo, ResumoPrajiedResponse prajied,
                                   ResumoCheckInResponse checkIns, ResumoPlanoAlunoResponse plano,
                                   ResumoFinanceiroAlunoResponse financeiro, ResumoPesoDashboardResponse evolucaoPeso,
-                                  ProximaAulaAlunoResponse proximaAula,
+                                  ProgressoMetaPesoDashboardResponse metaPeso, ProximaAulaAlunoResponse proximaAula,
                                   List<AulaAlunoResponse> aulasHoje, List<AulaAlunoResponse> aulasSemana,
                                   List<HorarioPersonalAlunoResponse> horariosFixosPersonal) {
         this.alunoId = alunoId;
@@ -30,6 +31,7 @@ public class DashboardAlunoResponse {
         this.plano = plano;
         this.financeiro = financeiro;
         this.evolucaoPeso = evolucaoPeso;
+        this.metaPeso = metaPeso;
         this.proximaAula = proximaAula;
         this.aulasHoje = aulasHoje;
         this.aulasSemana = aulasSemana;
@@ -44,6 +46,7 @@ public class DashboardAlunoResponse {
     public ResumoPlanoAlunoResponse getPlano() { return plano; }
     public ResumoFinanceiroAlunoResponse getFinanceiro() { return financeiro; }
     public ResumoPesoDashboardResponse getEvolucaoPeso() { return evolucaoPeso; }
+    public ProgressoMetaPesoDashboardResponse getMetaPeso() { return metaPeso; }
     public ProximaAulaAlunoResponse getProximaAula() { return proximaAula; }
     public List<AulaAlunoResponse> getAulasHoje() { return aulasHoje; }
     public List<AulaAlunoResponse> getAulasSemana() { return aulasSemana; }

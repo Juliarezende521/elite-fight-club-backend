@@ -41,6 +41,7 @@ class EvolucaoPesoServiceTest {
         assertEquals(new BigDecimal("70.55"), response.getPeso());
         verify(fx.evolucaoPesoRepository).save(argThat(registro ->
                 registro.getCriadoPor() == fx.usuario && Boolean.TRUE.equals(registro.getAtivo())));
+        verify(fx.metaPesoService).concluirMetaAtivaSeAtingida(20L, fx.usuario);
     }
 
     @Test
@@ -133,6 +134,7 @@ class EvolucaoPesoServiceTest {
         assertEquals(new BigDecimal("71.10"), response.getPeso());
         assertEquals(fx.usuario, registro.getAtualizadoPor());
         assertNotNull(registro.getAtualizadoEm());
+        verify(fx.metaPesoService).concluirMetaAtivaSeAtingida(20L, fx.usuario);
 
         when(fx.evolucaoPesoRepository.existsByAcademiaIdAndAlunoIdAndDataRegistroAndAtivoTrueAndIdNot(
                 1L, 20L, HOJE, 7L)).thenReturn(true);
@@ -164,6 +166,7 @@ class EvolucaoPesoServiceTest {
         assertEquals(fx.usuario, registro.getAtualizadoPor());
         verify(fx.evolucaoPesoRepository).save(registro);
         verify(fx.evolucaoPesoRepository, never()).delete(any());
+        verify(fx.metaPesoService, never()).concluirMetaAtivaSeAtingida(anyLong(), any());
     }
 
     @Test
@@ -202,6 +205,7 @@ class EvolucaoPesoServiceTest {
         EvolucaoPesoRepository evolucaoPesoRepository = mock(EvolucaoPesoRepository.class);
         AlunoRepository alunoRepository = mock(AlunoRepository.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
+        MetaPesoService metaPesoService = mock(MetaPesoService.class);
         Academia academia = new Academia();
         academia.setId(1L);
         academia.setNome("Elite");
@@ -223,8 +227,10 @@ class EvolucaoPesoServiceTest {
         when(permissaoService.academiaAtualId()).thenReturn(1L);
         when(alunoRepository.findByIdAndAcademiaId(20L, 1L)).thenReturn(Optional.of(aluno));
 
-        EvolucaoPesoService service = new EvolucaoPesoService(evolucaoPesoRepository, alunoRepository, permissaoService, CLOCK);
-        return new Fixture(service, evolucaoPesoRepository, alunoRepository, permissaoService, academia, aluno, usuario);
+        EvolucaoPesoService service = new EvolucaoPesoService(evolucaoPesoRepository, alunoRepository,
+                permissaoService, metaPesoService, CLOCK);
+        return new Fixture(service, evolucaoPesoRepository, alunoRepository, permissaoService, metaPesoService,
+                academia, aluno, usuario);
     }
 
     private RegistrarPesoRequest registrar(String peso, LocalDate data, String observacao) {
@@ -265,6 +271,7 @@ class EvolucaoPesoServiceTest {
                            EvolucaoPesoRepository evolucaoPesoRepository,
                            AlunoRepository alunoRepository,
                            PermissaoService permissaoService,
+                           MetaPesoService metaPesoService,
                            Academia academia,
                            Aluno aluno,
                            Usuario usuario) {

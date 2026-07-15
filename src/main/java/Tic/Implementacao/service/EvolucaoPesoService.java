@@ -32,15 +32,18 @@ public class EvolucaoPesoService {
     private final EvolucaoPesoRepository evolucaoPesoRepository;
     private final AlunoRepository alunoRepository;
     private final PermissaoService permissaoService;
+    private final MetaPesoService metaPesoService;
     private final Clock clock;
 
     public EvolucaoPesoService(EvolucaoPesoRepository evolucaoPesoRepository,
                                AlunoRepository alunoRepository,
                                PermissaoService permissaoService,
+                               MetaPesoService metaPesoService,
                                Clock clock) {
         this.evolucaoPesoRepository = evolucaoPesoRepository;
         this.alunoRepository = alunoRepository;
         this.permissaoService = permissaoService;
+        this.metaPesoService = metaPesoService;
         this.clock = clock;
     }
 
@@ -149,7 +152,9 @@ public class EvolucaoPesoService {
         registro.setCriadoEm(LocalDateTime.now(clock));
         registro.setCriadoPor(usuario);
         registro.setAtivo(true);
-        return toResponse(evolucaoPesoRepository.save(registro));
+        EvolucaoPeso salvo = evolucaoPesoRepository.save(registro);
+        metaPesoService.concluirMetaAtivaSeAtingida(aluno.getId(), usuario);
+        return toResponse(salvo);
     }
 
     private EvolucaoPesoResponse atualizarPesoInterno(Long alunoId, Long registroId, AtualizarPesoRequest request, Usuario usuario) {
@@ -166,7 +171,9 @@ public class EvolucaoPesoService {
         registro.setObservacao(request.getObservacao());
         registro.setAtualizadoEm(LocalDateTime.now(clock));
         registro.setAtualizadoPor(usuario);
-        return toResponse(evolucaoPesoRepository.save(registro));
+        EvolucaoPeso salvo = evolucaoPesoRepository.save(registro);
+        metaPesoService.concluirMetaAtivaSeAtingida(aluno.getId(), usuario);
+        return toResponse(salvo);
     }
 
     private void excluirLogicamenteInterno(Long alunoId, Long registroId, Usuario usuario) {

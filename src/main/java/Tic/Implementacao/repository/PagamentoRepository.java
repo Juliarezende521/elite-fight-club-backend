@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,4 +62,21 @@ public interface PagamentoRepository extends JpaRepository<Pagamento, Long> {
             """)
     List<Pagamento> findMensalidadesPorFaturas(@Param("academiaId") Long academiaId,
                                                @Param("faturaIds") List<Long> faturaIds);
+
+    @Query("""
+            select distinct p from Pagamento p
+            left join fetch p.fatura f
+            left join fetch f.aluno fa
+            left join fetch p.inscricaoGraduacao i
+            left join fetch i.evento e
+            left join fetch i.aluno ia
+            left join fetch i.graduacaoDestino g
+            where p.academia.id = :academiaId
+              and coalesce(p.pagoEm, p.criadoEm) >= :inicio
+              and coalesce(p.pagoEm, p.criadoEm) < :fimExclusivo
+            order by coalesce(p.pagoEm, p.criadoEm), p.id
+            """)
+    List<Pagamento> findParaRelatorioContabil(@Param("academiaId") Long academiaId,
+                                              @Param("inicio") LocalDateTime inicio,
+                                              @Param("fimExclusivo") LocalDateTime fimExclusivo);
 }

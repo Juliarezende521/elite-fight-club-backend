@@ -169,6 +169,14 @@ FRONTEND_READY.md
 
 Ele contem a ordem recomendada de implementacao, fluxos principais, perfis, autenticacao e inventario dos endpoints existentes.
 
+O relatorio tecnico de revisao do backend esta em:
+
+```text
+BACKEND_REVIEW_REPORT.md
+```
+
+Ele registra pontos fortes, validacoes executadas e melhorias futuras recomendadas sem quebrar compatibilidade.
+
 ## Status Atual
 
 O backend possui o nucleo funcional da plataforma, com migrations, testes automatizados, seguranca por perfil, multiacademia e integracoes preparadas para ambiente sandbox. Esta versao fecha o primeiro marco estavel do backend.

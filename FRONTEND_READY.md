@@ -156,6 +156,7 @@ O frontend deve exibir `message` para o usuario e, quando existir, mapear `field
 - Alguns controllers legados ainda retornam entidades JPA diretamente (`Aluno`, `Professor`, `Turma`, `Aula`, `Modalidade`, `Notificacao` legado). Para o frontend v0.1, preferir endpoints novos com DTO quando existirem.
 - Multiacademia e permissoes ficam concentradas nos services; o frontend nunca deve enviar `academiaId` como fonte de verdade.
 - Segredos do Asaas, Firebase e banco devem permanecer fora do repositorio.
+- O relatorio completo de revisao e melhorias futuras esta em `BACKEND_REVIEW_REPORT.md`.
 
 ## Inventario de Endpoints
 
@@ -505,4 +506,3 @@ A tabela abaixo foi gerada a partir dos controllers atuais. A coluna de perfil i
 | `DELETE` | `/modalidades/{id}` | Autenticado; regra final no service | `-` | `Void` |
 | `GET` | `/modalidades/{id}` | Autenticado; regra final no service | `-` | `Optional<Modalidade>` |
 | `PATCH` | `/modalidades/{id}` | Autenticado; regra final no service | `Modalidade` | `Modalidade` |
-

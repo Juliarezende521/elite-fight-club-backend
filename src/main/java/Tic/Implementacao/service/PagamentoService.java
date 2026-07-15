@@ -43,6 +43,7 @@ public class PagamentoService {
     private final ProvedorPagamento provedorPagamento;
     private final PermissaoService permissaoService;
     private final NotificacaoService notificacaoService;
+    private final NotificacaoFinanceiraAutomacaoService notificacaoFinanceiraAutomacaoService;
     private final ObjectMapper objectMapper;
     private final AsaasProperties asaasProperties;
     private final Map<Long, Object> locksPorFatura = new ConcurrentHashMap<>();
@@ -54,6 +55,7 @@ public class PagamentoService {
                             FaturaService faturaService,
                             ProvedorPagamento provedorPagamento, PermissaoService permissaoService,
                             NotificacaoService notificacaoService,
+                            NotificacaoFinanceiraAutomacaoService notificacaoFinanceiraAutomacaoService,
                             ObjectMapper objectMapper, AsaasProperties asaasProperties) {
         this.repository = repository;
         this.eventoRepository = eventoRepository;
@@ -63,6 +65,7 @@ public class PagamentoService {
         this.provedorPagamento = provedorPagamento;
         this.permissaoService = permissaoService;
         this.notificacaoService = notificacaoService;
+        this.notificacaoFinanceiraAutomacaoService = notificacaoFinanceiraAutomacaoService;
         this.objectMapper = objectMapper;
         this.asaasProperties = asaasProperties;
     }
@@ -194,7 +197,9 @@ public class PagamentoService {
 
         atualizarStatusFaturaPorSaldo(fatura, pagamento, request.getValor());
 
-        return repository.save(pagamento);
+        Pagamento salvo = repository.save(pagamento);
+        notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(salvo, StatusPagamento.PAGO);
+        return salvo;
     }
 
     @Transactional
@@ -214,6 +219,7 @@ public class PagamentoService {
             } else {
                 pagamento.getFatura().setStatus(StatusFatura.PAGA);
                 pagamento.getFatura().setAtualizadoEm(LocalDateTime.now());
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.PAGO);
             }
         }
 
@@ -285,6 +291,7 @@ public class PagamentoService {
                 atualizarInscricaoPorPagamento(pagamento, StatusPagamento.PAGO);
             } else {
                 atualizarStatusFaturaAposConfirmacao(pagamento.getFatura(), pagamento);
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.PAGO);
             }
             logEventoProcessado(pagamento, tipoEvento, statusAnterior, pagamento.getStatus(), statusFaturaAnterior);
             return;
@@ -294,6 +301,8 @@ public class PagamentoService {
             pagamento.setStatus(StatusPagamento.PROCESSANDO);
             if (pagamento.getTipoCobranca() == TipoCobranca.GRADUACAO) {
                 atualizarInscricaoPorPagamento(pagamento, StatusPagamento.PROCESSANDO);
+            } else {
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.PROCESSANDO);
             }
             logEventoProcessado(pagamento, tipoEvento, statusAnterior, pagamento.getStatus(), statusFaturaAnterior);
             return;
@@ -306,6 +315,7 @@ public class PagamentoService {
             } else {
                 pagamento.getFatura().setStatus(StatusFatura.VENCIDA);
                 pagamento.getFatura().setAtualizadoEm(LocalDateTime.now());
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.FALHOU);
             }
             logEventoProcessado(pagamento, tipoEvento, statusAnterior, pagamento.getStatus(), statusFaturaAnterior);
             return;
@@ -318,6 +328,7 @@ public class PagamentoService {
             } else {
                 pagamento.getFatura().setStatus(StatusFatura.CANCELADA);
                 pagamento.getFatura().setAtualizadoEm(LocalDateTime.now());
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.CANCELADO);
             }
             logEventoProcessado(pagamento, tipoEvento, statusAnterior, pagamento.getStatus(), statusFaturaAnterior);
             return;
@@ -330,6 +341,7 @@ public class PagamentoService {
             } else {
                 pagamento.getFatura().setStatus(StatusFatura.PENDENTE);
                 pagamento.getFatura().setAtualizadoEm(LocalDateTime.now());
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.ESTORNADO);
             }
             logEventoProcessado(pagamento, tipoEvento, statusAnterior, pagamento.getStatus(), statusFaturaAnterior);
             return;
@@ -386,12 +398,17 @@ public class PagamentoService {
             if (statusAtual == StatusPagamento.PAGO) {
                 pagamento.setPagoEm(pagamento.getPagoEm() == null ? LocalDateTime.now() : pagamento.getPagoEm());
                 atualizarStatusFaturaAposConfirmacao(pagamento.getFatura(), pagamento);
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.PAGO);
             } else if (statusAtual == StatusPagamento.CANCELADO) {
                 pagamento.getFatura().setStatus(StatusFatura.CANCELADA);
                 pagamento.getFatura().setAtualizadoEm(LocalDateTime.now());
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.CANCELADO);
             } else if (statusAtual == StatusPagamento.ESTORNADO) {
                 pagamento.getFatura().setStatus(StatusFatura.PENDENTE);
                 pagamento.getFatura().setAtualizadoEm(LocalDateTime.now());
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.ESTORNADO);
+            } else if (statusAtual == StatusPagamento.PROCESSANDO) {
+                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.PROCESSANDO);
             }
         }
 

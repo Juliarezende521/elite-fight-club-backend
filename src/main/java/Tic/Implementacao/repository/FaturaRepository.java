@@ -31,6 +31,24 @@ public interface FaturaRepository extends JpaRepository<Fatura, Long> {
     @Query("""
             select f from Fatura f
             join fetch f.aluno a
+            where f.academia.id = :academiaId
+              and f.dataVencimento = :dataVencimento
+            """)
+    List<Fatura> findComAlunoByAcademiaIdAndDataVencimento(@Param("academiaId") Long academiaId,
+                                                           @Param("dataVencimento") LocalDate dataVencimento);
+
+    @Query("""
+            select f from Fatura f
+            join fetch f.aluno a
+            where f.academia.id = :academiaId
+              and f.id in :ids
+            """)
+    List<Fatura> findComAlunoByAcademiaIdAndIdIn(@Param("academiaId") Long academiaId,
+                                                @Param("ids") List<Long> ids);
+
+    @Query("""
+            select f from Fatura f
+            join fetch f.aluno a
             left join fetch a.plano p
             where f.academia.id = :academiaId
               and f.mesReferencia = :mesReferencia

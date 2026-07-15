@@ -624,10 +624,11 @@ class PagamentoServiceTest {
         ProvedorPagamento provedorPagamento = mock(ProvedorPagamento.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
         NotificacaoService notificacaoService = mock(NotificacaoService.class);
+        NotificacaoFinanceiraAutomacaoService notificacaoFinanceiraAutomacaoService = mock(NotificacaoFinanceiraAutomacaoService.class);
         PagamentoService service = new PagamentoService(pagamentoRepository, eventoRepository, alunoRepository, inscricaoGraduacaoRepository, faturaService,
-                provedorPagamento, permissaoService, notificacaoService, new ObjectMapper(), asaasProperties());
+                provedorPagamento, permissaoService, notificacaoService, notificacaoFinanceiraAutomacaoService, new ObjectMapper(), asaasProperties());
         return new Fixture(pagamentoRepository, eventoRepository, alunoRepository, inscricaoGraduacaoRepository, faturaService, provedorPagamento,
-                permissaoService, notificacaoService, service);
+                permissaoService, notificacaoService, notificacaoFinanceiraAutomacaoService, service);
     }
 
     private AsaasProperties asaasProperties() {
@@ -642,6 +643,7 @@ class PagamentoServiceTest {
                            ProvedorPagamento provedorPagamento,
                            PermissaoService permissaoService,
                            NotificacaoService notificacaoService,
+                           NotificacaoFinanceiraAutomacaoService notificacaoFinanceiraAutomacaoService,
                            PagamentoService service) {
     }
 }

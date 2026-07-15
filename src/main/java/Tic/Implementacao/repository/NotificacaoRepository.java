@@ -49,4 +49,26 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long> 
                                       @Param("status") StatusNotificacao status,
                                       @Param("alunoId") Long alunoId,
                                       @Param("eventoId") Long eventoId);
+
+    @Query("""
+            select n from Notificacao n
+            where n.academia.id = :academiaId
+              and n.referenciaTipo = 'FATURA'
+              and (:inicio is null or n.criadaEm >= :inicio)
+              and (:fim is null or n.criadaEm <= :fim)
+              and (:tipo is null or n.tipoNotificacao = :tipo)
+              and (:status is null or n.status = :status)
+              and (:alunoId is null or n.aluno.id = :alunoId or n.destinatario.aluno.id = :alunoId)
+              and (:faturaId is null or n.referenciaId = :faturaId)
+              and (:somenteFalhas = false or n.status = Tic.Implementacao.model.StatusNotificacao.FALHOU)
+            order by n.criadaEm desc
+            """)
+    List<Notificacao> buscarRelatorioFinanceiro(@Param("academiaId") Long academiaId,
+                                                @Param("inicio") LocalDateTime inicio,
+                                                @Param("fim") LocalDateTime fim,
+                                                @Param("tipo") TipoNotificacao tipo,
+                                                @Param("status") StatusNotificacao status,
+                                                @Param("alunoId") Long alunoId,
+                                                @Param("faturaId") Long faturaId,
+                                                @Param("somenteFalhas") boolean somenteFalhas);
 }

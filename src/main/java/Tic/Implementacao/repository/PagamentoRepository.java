@@ -64,6 +64,17 @@ public interface PagamentoRepository extends JpaRepository<Pagamento, Long> {
                                                @Param("faturaIds") List<Long> faturaIds);
 
     @Query("""
+            select p from Pagamento p
+            join fetch p.fatura f
+            where p.academia.id = :academiaId
+              and p.tipoCobranca = Tic.Implementacao.model.TipoCobranca.MENSALIDADE
+              and f.id in :faturaIds
+            order by p.criadoEm desc
+            """)
+    List<Pagamento> findMensalidadesComFaturaPorFaturas(@Param("academiaId") Long academiaId,
+                                                        @Param("faturaIds") List<Long> faturaIds);
+
+    @Query("""
             select distinct p from Pagamento p
             left join fetch p.fatura f
             left join fetch f.aluno fa

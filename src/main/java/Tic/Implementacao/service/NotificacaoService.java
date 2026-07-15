@@ -36,6 +36,7 @@ public class NotificacaoService {
     private final Clock clock;
     private final long prazoInscricaoHoras;
     private final long lembreteEventoHoras;
+    private final boolean notificacoesLegadoEnabled;
 
     public NotificacaoService(NotificacaoRepository repo,
                               FinanceiroRepository financeiroRepository,
@@ -46,7 +47,8 @@ public class NotificacaoService {
                               PermissaoService permissaoService,
                               Clock clock,
                               @Value("${graduacao.notificacao.prazo-inscricao-horas:48}") long prazoInscricaoHoras,
-                              @Value("${graduacao.notificacao.lembrete-evento-horas:24}") long lembreteEventoHoras) {
+                              @Value("${graduacao.notificacao.lembrete-evento-horas:24}") long lembreteEventoHoras,
+                              @Value("${notificacoes.legado.enabled:false}") boolean notificacoesLegadoEnabled) {
         this.repo = repo;
         this.financeiroRepository = financeiroRepository;
         this.usuarioRepository = usuarioRepository;
@@ -57,6 +59,7 @@ public class NotificacaoService {
         this.clock = clock;
         this.prazoInscricaoHoras = prazoInscricaoHoras;
         this.lembreteEventoHoras = lembreteEventoHoras;
+        this.notificacoesLegadoEnabled = notificacoesLegadoEnabled;
     }
 
     public List<Notificacao> listarTodos(){
@@ -178,6 +181,9 @@ public class NotificacaoService {
     @Scheduled(cron = "0 0 8 * * *")
     @Transactional
     public void gerarNotificacoesAutomaticas() {
+        if (!notificacoesLegadoEnabled) {
+            return;
+        }
         LocalDate hoje = LocalDate.now(clock);
 
         financeiroRepository.findByDataPagamentoIsNullAndDataVencimento(hoje)

@@ -184,7 +184,7 @@ class NotificacaoServiceTest {
         EventoGraduacaoRepository eventoRepository = mock(EventoGraduacaoRepository.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
         NotificacaoService service = new NotificacaoService(notificacaoRepository, financeiroRepository, usuarioRepository,
-                conviteRepository, inscricaoRepository, eventoRepository, permissaoService, CLOCK, 48, 24);
+                conviteRepository, inscricaoRepository, eventoRepository, permissaoService, CLOCK, 48, 24, false);
 
         Academia academia = new Academia();
         academia.setId(1L);

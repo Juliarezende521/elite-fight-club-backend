@@ -39,6 +39,16 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    @ExceptionHandler(ConflitoException.class)
+    public ResponseEntity<ApiErrorResponse> tratarConflito(ConflitoException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorResponse(
+                409,
+                "CONFLICT",
+                ex.getMessage(),
+                Map.of()
+        ));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiErrorResponse> tratarAcessoNegado(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiErrorResponse(

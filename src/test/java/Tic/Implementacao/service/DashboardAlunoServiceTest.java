@@ -1,6 +1,7 @@
 package Tic.Implementacao.service;
 
 import Tic.Implementacao.dto.dashboard.aluno.DashboardAlunoResponse;
+import Tic.Implementacao.dto.dashboard.aluno.ResumoPesoDashboardResponse;
 import Tic.Implementacao.dto.graduacao.ElegibilidadeGraduacaoResponse;
 import Tic.Implementacao.model.*;
 import Tic.Implementacao.repository.*;
@@ -54,6 +55,19 @@ class DashboardAlunoServiceTest {
         DashboardAlunoResponse response = fx.service.buscarDashboardDoAlunoAtual();
 
         assertNull(response.getPlano());
+    }
+
+    @Test
+    void dashboardIncluiResumoPesoQuandoExisteENullQuandoNaoExiste() {
+        Fixture fx = fixture(PerfilUsuario.ALUNO, TipoPlano.TURMA);
+        ResumoPesoDashboardResponse resumo = new ResumoPesoDashboardResponse(BigDecimal.valueOf(70),
+                HOJE, BigDecimal.valueOf(-2), BigDecimal.valueOf(70), BigDecimal.valueOf(72), 2L);
+        when(fx.evolucaoPesoService.buscarResumoDashboard(20L)).thenReturn(resumo);
+
+        assertEquals(BigDecimal.valueOf(70), fx.service.buscarDashboardDoAlunoAtual().getEvolucaoPeso().getPesoAtual());
+
+        Fixture semPeso = fixture(PerfilUsuario.ALUNO, TipoPlano.TURMA);
+        assertNull(semPeso.service.buscarDashboardDoAlunoAtual().getEvolucaoPeso());
     }
 
     @Test
@@ -229,6 +243,7 @@ class DashboardAlunoServiceTest {
         SessaoCheckInRepository sessaoCheckInRepository = mock(SessaoCheckInRepository.class);
         PresencaAulaRepository presencaAulaRepository = mock(PresencaAulaRepository.class);
         GraduacaoAlunoService graduacaoAlunoService = mock(GraduacaoAlunoService.class);
+        EvolucaoPesoService evolucaoPesoService = mock(EvolucaoPesoService.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
         Clock clock = Clock.fixed(HOJE.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
@@ -251,13 +266,15 @@ class DashboardAlunoServiceTest {
         when(faturaRepository.findByAcademiaIdAndAlunoIdAndStatusInOrderByDataVencimentoAsc(anyLong(), anyLong(), any())).thenReturn(List.of());
         when(pagamentoRepository.somarPagamentosConfirmadosPorFatura(anyLong())).thenReturn(BigDecimal.ZERO);
         when(pagamentoRepository.findFirstByAcademiaIdAndFaturaIdAndMetodoAndStatusInOrderByCriadoEmDesc(anyLong(), anyLong(), any(), any())).thenReturn(Optional.empty());
+        when(evolucaoPesoService.buscarResumoDashboard(20L)).thenReturn(null);
 
         DashboardAlunoService service = new DashboardAlunoService(alunoRepository, graduacaoRepository, checkInRepository,
                 reservaRepository, aulaPersonalRepository, agendaPersonalRepository, faturaRepository, pagamentoRepository,
-                sessaoCheckInRepository, presencaAulaRepository, graduacaoAlunoService, permissaoService, clock);
+                sessaoCheckInRepository, presencaAulaRepository, graduacaoAlunoService, evolucaoPesoService, permissaoService, clock);
         return new Fixture(service, alunoRepository, graduacaoRepository, checkInRepository, reservaRepository,
                 aulaPersonalRepository, agendaPersonalRepository, faturaRepository, pagamentoRepository,
-                sessaoCheckInRepository, presencaAulaRepository, graduacaoAlunoService, permissaoService, academia, aluno, atual, proxima, usuario);
+                sessaoCheckInRepository, presencaAulaRepository, graduacaoAlunoService, evolucaoPesoService,
+                permissaoService, academia, aluno, atual, proxima, usuario);
     }
 
     private Academia academia() {
@@ -428,6 +445,7 @@ class DashboardAlunoServiceTest {
                            SessaoCheckInRepository sessaoCheckInRepository,
                            PresencaAulaRepository presencaAulaRepository,
                            GraduacaoAlunoService graduacaoAlunoService,
+                           EvolucaoPesoService evolucaoPesoService,
                            PermissaoService permissaoService,
                            Academia academia,
                            Aluno aluno,

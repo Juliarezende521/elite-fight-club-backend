@@ -31,6 +31,7 @@ public class DashboardAlunoService {
     private final SessaoCheckInRepository sessaoCheckInRepository;
     private final PresencaAulaRepository presencaAulaRepository;
     private final GraduacaoAlunoService graduacaoAlunoService;
+    private final EvolucaoPesoService evolucaoPesoService;
     private final PermissaoService permissaoService;
     private final Clock clock;
 
@@ -45,6 +46,7 @@ public class DashboardAlunoService {
                                  SessaoCheckInRepository sessaoCheckInRepository,
                                  PresencaAulaRepository presencaAulaRepository,
                                  GraduacaoAlunoService graduacaoAlunoService,
+                                 EvolucaoPesoService evolucaoPesoService,
                                  PermissaoService permissaoService,
                                  Clock clock) {
         this.alunoRepository = alunoRepository;
@@ -58,6 +60,7 @@ public class DashboardAlunoService {
         this.sessaoCheckInRepository = sessaoCheckInRepository;
         this.presencaAulaRepository = presencaAulaRepository;
         this.graduacaoAlunoService = graduacaoAlunoService;
+        this.evolucaoPesoService = evolucaoPesoService;
         this.permissaoService = permissaoService;
         this.clock = clock;
     }
@@ -90,6 +93,7 @@ public class DashboardAlunoService {
         ResumoPrajiedResponse prajied = montarPrajied(academiaId, aluno, checkIns.getTotal());
         ResumoPlanoAlunoResponse plano = montarPlano(academiaId, aluno, inicioSemana, fimSemana);
         ResumoFinanceiroAlunoResponse financeiro = montarFinanceiro(academiaId, aluno, hoje);
+        ResumoPesoDashboardResponse evolucaoPeso = evolucaoPesoService.buscarResumoDashboard(aluno.getId());
 
         List<AulaAlunoResponse> aulasSemana = montarAulasSemana(academiaId, aluno, inicioSemana, fimSemana);
         List<AulaAlunoResponse> aulasHoje = aulasSemana.stream()
@@ -99,7 +103,7 @@ public class DashboardAlunoService {
         List<HorarioPersonalAlunoResponse> horariosPersonal = montarHorariosPersonal(academiaId, aluno);
 
         return new DashboardAlunoResponse(aluno.getId(), aluno.getNome(), aluno.getAtivo(), prajied, checkIns, plano,
-                financeiro, proxima, aulasHoje, aulasSemana, horariosPersonal);
+                financeiro, evolucaoPeso, proxima, aulasHoje, aulasSemana, horariosPersonal);
     }
 
     private ResumoCheckInResponse montarCheckIns(Long academiaId, Aluno aluno, LocalDate hoje, LocalDate inicioSemana, LocalDate fimSemana) {

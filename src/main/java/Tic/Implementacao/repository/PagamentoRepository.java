@@ -5,6 +5,7 @@ import Tic.Implementacao.model.MetodoPagamento;
 import Tic.Implementacao.model.StatusPagamento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,4 +37,18 @@ public interface PagamentoRepository extends JpaRepository<Pagamento, Long> {
 
     @Query("select coalesce(sum(p.valor), 0) from Pagamento p where p.fatura.id = :faturaId and p.status = Tic.Implementacao.model.StatusPagamento.PAGO and p.id <> :pagamentoIdIgnorado")
     BigDecimal somarPagamentosConfirmadosPorFaturaIgnorandoPagamento(Long faturaId, Long pagamentoIdIgnorado);
+
+    @Query("""
+            select p from Pagamento p
+            join fetch p.inscricaoGraduacao i
+            join fetch i.evento e
+            join fetch i.aluno a
+            join fetch i.graduacaoDestino g
+            where p.academia.id = :academiaId
+              and p.tipoCobranca = Tic.Implementacao.model.TipoCobranca.GRADUACAO
+              and e.id in :eventoIds
+            order by p.criadoEm desc
+            """)
+    List<Pagamento> findPagamentosGraduacaoPorEventos(@Param("academiaId") Long academiaId,
+                                                       @Param("eventoIds") List<Long> eventoIds);
 }

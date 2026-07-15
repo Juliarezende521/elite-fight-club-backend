@@ -14,6 +14,14 @@ public interface EventoGraduacaoPrajiedRepository extends JpaRepository<EventoGr
 
     List<EventoGraduacaoPrajied> findByEventoIdAndAtivoTrueOrderByGraduacaoDestinoOrdemAsc(Long eventoId);
 
+    @Query("""
+            select p from EventoGraduacaoPrajied p
+            join fetch p.graduacaoDestino
+            where p.evento.id in :eventoIds and p.ativo = true
+            order by p.evento.id asc, p.graduacaoDestino.ordem asc
+            """)
+    List<EventoGraduacaoPrajied> findAtivosByEventoIds(@Param("eventoIds") List<Long> eventoIds);
+
     Optional<EventoGraduacaoPrajied> findByIdAndEventoIdAndEventoAcademiaId(Long id, Long eventoId, Long academiaId);
 
     Optional<EventoGraduacaoPrajied> findByEventoIdAndGraduacaoDestinoIdAndAtivoTrue(Long eventoId, Long graduacaoDestinoId);

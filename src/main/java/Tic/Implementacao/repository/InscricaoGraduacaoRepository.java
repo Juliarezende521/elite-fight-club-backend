@@ -16,6 +16,8 @@ public interface InscricaoGraduacaoRepository extends JpaRepository<InscricaoGra
 
     List<InscricaoGraduacao> findByAcademiaIdAndEventoIdOrderByInscritoEmDesc(Long academiaId, Long eventoId);
 
+    List<InscricaoGraduacao> findByAcademiaIdAndEventoIdIn(Long academiaId, Collection<Long> eventoIds);
+
     List<InscricaoGraduacao> findByAcademiaIdAndAlunoIdOrderByInscritoEmDesc(Long academiaId, Long alunoId);
 
     Optional<InscricaoGraduacao> findByIdAndAcademiaIdAndAlunoId(Long id, Long academiaId, Long alunoId);

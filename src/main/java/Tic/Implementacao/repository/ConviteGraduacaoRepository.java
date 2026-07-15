@@ -12,6 +12,8 @@ public interface ConviteGraduacaoRepository extends JpaRepository<ConviteGraduac
 
     List<ConviteGraduacao> findByAcademiaIdAndEventoIdOrderByEnviadoEmDesc(Long academiaId, Long eventoId);
 
+    List<ConviteGraduacao> findByAcademiaIdAndEventoIdIn(Long academiaId, Collection<Long> eventoIds);
+
     List<ConviteGraduacao> findByAcademiaIdAndAlunoIdOrderByEnviadoEmDesc(Long academiaId, Long alunoId);
 
     Optional<ConviteGraduacao> findByIdAndAcademiaIdAndAlunoId(Long id, Long academiaId, Long alunoId);

@@ -1,6 +1,7 @@
 package Tic.Implementacao.service;
 
 import Tic.Implementacao.dto.relatorio.financeiro.*;
+import Tic.Implementacao.dto.relatorio.financeiro.anual.*;
 import Tic.Implementacao.model.*;
 import Tic.Implementacao.repository.AlunoRepository;
 import Tic.Implementacao.repository.FaturaRepository;
@@ -16,6 +17,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -139,6 +141,355 @@ public class RelatorioFinanceiroService {
         return "relatorio-financeiro-%04d-%02d.csv".formatted(ano, mes);
     }
 
+    @Transactional(readOnly = true)
+    public RelatorioFinanceiroAnualResponse gerarAnual(Integer ano, TipoPlano tipoPlano,
+                                                        MetodoPagamento metodoPagamento, Long alunoId,
+                                                        Integer limiteInadimplentes) {
+        permissaoService.exigirAdminOuProfessor();
+        if (ano == null || ano < 2000 || ano > 2100) {
+            throw new RuntimeException("Ano válido é obrigatório");
+        }
+        int limite = limiteInadimplentes == null ? 10 : limiteInadimplentes;
+        if (limite < 1 || limite > 100) {
+            throw new RuntimeException("O limite de inadimplentes deve ficar entre 1 e 100");
+        }
+
+        Long academiaId = permissaoService.academiaAtualId();
+        LocalDate inicio = LocalDate.of(ano, 1, 1);
+        LocalDate fimCompetencia = LocalDate.of(ano, 12, 1);
+        LocalDate fim = LocalDate.of(ano, 12, 31);
+        LocalDate hoje = LocalDate.now(clock);
+        LocalDate dataReferencia = ano.equals(hoje.getYear()) ? hoje : fim;
+
+        List<Aluno> alunosAtivos = alunoRepository.findByAtivoTrueAndAcademiaId(academiaId).stream()
+                .filter(a -> alunoId == null || Objects.equals(a.getId(), alunoId))
+                .filter(a -> tipoPlano == null || (a.getPlano() != null && a.getPlano().getTipo() == tipoPlano))
+                .toList();
+        Set<Long> alunosPermitidos = alunosAtivos.stream().map(Aluno::getId).collect(Collectors.toSet());
+
+        List<Fatura> faturasAno = faturaRepository.findMensaisDoPeriodoComAlunoPlano(academiaId, inicio, fimCompetencia).stream()
+                .filter(f -> alunosPermitidos.contains(f.getAluno().getId()))
+                .toList();
+        Map<Long, List<Pagamento>> pagamentosPorFatura = pagamentosPorFatura(academiaId, faturasAno.stream().map(Fatura::getId).toList());
+
+        List<Fatura> faturasFiltradas = faturasAno.stream()
+                .filter(f -> metodoPagamento == null || pagamentosPorFatura.getOrDefault(f.getId(), List.of()).stream()
+                        .anyMatch(p -> p.getStatus() == StatusPagamento.PAGO && p.getMetodo() == metodoPagamento))
+                .toList();
+        Set<Long> faturasFiltradasIds = faturasFiltradas.stream().map(Fatura::getId).collect(Collectors.toSet());
+        List<Pagamento> pagamentosFiltrados = faturasFiltradasIds.stream()
+                .flatMap(id -> pagamentosPorFatura.getOrDefault(id, List.of()).stream())
+                .filter(p -> p.getTipoCobranca() == TipoCobranca.MENSALIDADE)
+                .filter(p -> metodoPagamento == null || p.getMetodo() == metodoPagamento)
+                .toList();
+
+        List<ResumoFinanceiroMesResponse> meses = montarMesesAnuais(ano, faturasFiltradas, pagamentosPorFatura,
+                dataReferencia, metodoPagamento);
+        ResumoFinanceiroAnualResponse resumo = montarResumoAnual(meses, faturasFiltradas, pagamentosFiltrados,
+                pagamentosPorFatura, dataReferencia, metodoPagamento, alunosAtivos.size());
+        return new RelatorioFinanceiroAnualResponse(ano, inicio, fim, resumo, meses,
+                agruparFormaPagamentoAnual(pagamentosFiltrados, resumo.getTotalRecebido()),
+                agruparTipoPlanoAnual(faturasFiltradas, pagamentosPorFatura, dataReferencia, metodoPagamento),
+                maioresInadimplentesAnual(faturasFiltradas, pagamentosPorFatura, dataReferencia, limite),
+                escolherMelhorMes(meses),
+                escolherPiorMes(meses),
+                escolherMesMaiorInadimplencia(meses));
+    }
+
+    @Transactional(readOnly = true)
+    public ResumoFinanceiroAnualResponse gerarResumoAnual(Integer ano) {
+        return gerarAnual(ano, null, null, null, 10).getResumo();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] gerarCsvAnual(Integer ano, TipoPlano tipoPlano, MetodoPagamento metodoPagamento,
+                                Long alunoId, Integer limiteInadimplentes) {
+        RelatorioFinanceiroAnualResponse relatorio = gerarAnual(ano, tipoPlano, metodoPagamento, alunoId, limiteInadimplentes);
+        StringBuilder csv = new StringBuilder();
+        csv.append("Mês,Competência,Previsto,Recebido,Pendente,Vencido,Estornado,Receita líquida,Faturas pagas,Faturas pendentes,Faturas vencidas,Alunos inadimplentes,Taxa de recebimento,Taxa de inadimplência\n");
+        relatorio.getMeses().forEach(m -> csv.append(csv(m.getNomeMes())).append(',')
+                .append(csv(m.getCompetencia())).append(',')
+                .append(csv(m.getTotalPrevisto())).append(',')
+                .append(csv(m.getTotalRecebido())).append(',')
+                .append(csv(m.getTotalPendente())).append(',')
+                .append(csv(m.getTotalVencido())).append(',')
+                .append(csv(m.getTotalEstornado())).append(',')
+                .append(csv(m.getReceitaLiquida())).append(',')
+                .append(csv(m.getFaturasPagas())).append(',')
+                .append(csv(m.getFaturasPendentes())).append(',')
+                .append(csv(m.getFaturasVencidas())).append(',')
+                .append(csv(m.getAlunosInadimplentes())).append(',')
+                .append(csv(m.getTaxaRecebimento())).append(',')
+                .append(csv(m.getTaxaInadimplencia())).append('\n'));
+        return csv.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    public String nomeArquivoAnual(Integer ano) {
+        return "relatorio-financeiro-anual-%04d.csv".formatted(ano);
+    }
+
+    private List<ResumoFinanceiroMesResponse> montarMesesAnuais(Integer ano, List<Fatura> faturas,
+                                                                Map<Long, List<Pagamento>> pagamentosPorFatura,
+                                                                LocalDate dataReferencia,
+                                                                MetodoPagamento metodoPagamento) {
+        Map<Integer, List<Fatura>> faturasPorMes = faturas.stream()
+                .collect(Collectors.groupingBy(f -> f.getMesReferencia().getMonthValue()));
+        List<ResumoFinanceiroMesResponse> meses = new ArrayList<>();
+        BigDecimal recebidoAcumulado = ZERO;
+        BigDecimal previstoAcumulado = ZERO;
+        BigDecimal vencidoAcumulado = ZERO;
+        ResumoFinanceiroMesResponse anterior = null;
+        for (int mes = 1; mes <= 12; mes++) {
+            List<Fatura> faturasMes = faturasPorMes.getOrDefault(mes, List.of());
+            List<Pagamento> pagamentosMes = faturasMes.stream()
+                    .flatMap(f -> pagamentosPorFatura.getOrDefault(f.getId(), List.of()).stream())
+                    .filter(p -> metodoPagamento == null || p.getMetodo() == metodoPagamento)
+                    .toList();
+            BigDecimal previsto = somaFaturas(faturasMes.stream().filter(f -> f.getStatus() != StatusFatura.CANCELADA).toList());
+            BigDecimal recebido = recebido(pagamentosMes);
+            BigDecimal pendente = faturasMes.stream().map(f -> saldo(f, pagamentosMesDaFatura(f, pagamentosPorFatura, metodoPagamento)))
+                    .reduce(ZERO, BigDecimal::add);
+            BigDecimal vencido = faturasMes.stream()
+                    .filter(f -> f.getDataVencimento().isBefore(dataReferencia))
+                    .map(f -> saldo(f, pagamentosMesDaFatura(f, pagamentosPorFatura, metodoPagamento)))
+                    .reduce(ZERO, BigDecimal::add);
+            BigDecimal estornado = pagamentosMes.stream()
+                    .filter(p -> p.getStatus() == StatusPagamento.ESTORNADO)
+                    .map(Pagamento::getValor)
+                    .reduce(ZERO, BigDecimal::add);
+            BigDecimal receitaLiquida = normalizar(recebido.subtract(estornado));
+            recebidoAcumulado = normalizar(recebidoAcumulado.add(recebido));
+            previstoAcumulado = normalizar(previstoAcumulado.add(previsto));
+            vencidoAcumulado = normalizar(vencidoAcumulado.add(vencido));
+
+            ResumoFinanceiroMesResponse atual = new ResumoFinanceiroMesResponse(
+                    mes,
+                    YearMonth.of(ano, mes).getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR")),
+                    YearMonth.of(ano, mes).toString(),
+                    previsto,
+                    recebido,
+                    normalizar(pendente),
+                    normalizar(vencido),
+                    normalizar(estornado),
+                    receitaLiquida,
+                    count(faturasMes, StatusFatura.PAGA),
+                    count(faturasMes, StatusFatura.PENDENTE),
+                    count(faturasMes, StatusFatura.VENCIDA),
+                    (int) faturasMes.stream()
+                            .filter(f -> f.getDataVencimento().isBefore(dataReferencia))
+                            .filter(f -> saldo(f, pagamentosMesDaFatura(f, pagamentosPorFatura, metodoPagamento)).compareTo(ZERO) > 0)
+                            .map(f -> f.getAluno().getId())
+                            .distinct()
+                            .count(),
+                    percentual(recebido, previsto),
+                    percentual(vencido, previsto),
+                    anterior == null ? null : variacaoPercentual(recebido, anterior.getTotalRecebido()),
+                    anterior == null ? null : variacaoPercentual(previsto, anterior.getTotalPrevisto()),
+                    anterior == null ? null : variacaoPercentual(vencido, anterior.getTotalVencido()),
+                    recebidoAcumulado,
+                    previstoAcumulado,
+                    vencidoAcumulado);
+            meses.add(atual);
+            anterior = atual;
+        }
+        return meses;
+    }
+
+    private ResumoFinanceiroAnualResponse montarResumoAnual(List<ResumoFinanceiroMesResponse> meses, List<Fatura> faturas,
+                                                            List<Pagamento> pagamentos,
+                                                            Map<Long, List<Pagamento>> pagamentosPorFatura,
+                                                            LocalDate dataReferencia,
+                                                            MetodoPagamento metodoPagamento,
+                                                            int alunosAtivosNoAno) {
+        BigDecimal previsto = meses.stream().map(ResumoFinanceiroMesResponse::getTotalPrevisto).reduce(ZERO, BigDecimal::add);
+        BigDecimal recebido = meses.stream().map(ResumoFinanceiroMesResponse::getTotalRecebido).reduce(ZERO, BigDecimal::add);
+        BigDecimal pendente = meses.stream().map(ResumoFinanceiroMesResponse::getTotalPendente).reduce(ZERO, BigDecimal::add);
+        BigDecimal vencido = meses.stream().map(ResumoFinanceiroMesResponse::getTotalVencido).reduce(ZERO, BigDecimal::add);
+        BigDecimal estornado = meses.stream().map(ResumoFinanceiroMesResponse::getTotalEstornado).reduce(ZERO, BigDecimal::add);
+        BigDecimal parcialmentePago = faturas.stream()
+                .filter(f -> f.getStatus() != StatusFatura.CANCELADA)
+                .filter(f -> saldo(f, pagamentos.stream().filter(p -> Objects.equals(p.getFatura().getId(), f.getId())).toList()).compareTo(ZERO) > 0)
+                .map(f -> recebido(pagamentos.stream().filter(p -> Objects.equals(p.getFatura().getId(), f.getId())).toList()))
+                .filter(v -> v.compareTo(ZERO) > 0)
+                .reduce(ZERO, BigDecimal::add);
+        BigDecimal cancelado = somaFaturas(faturas.stream().filter(f -> f.getStatus() == StatusFatura.CANCELADA).toList());
+        int pagosConfirmados = (int) pagamentos.stream().filter(p -> p.getStatus() == StatusPagamento.PAGO).count();
+        int alunosComInadimplencia = (int) faturas.stream()
+                .filter(f -> f.getDataVencimento().isBefore(dataReferencia))
+                .filter(f -> saldo(f, pagamentosMesDaFatura(f, pagamentosPorFatura, metodoPagamento)).compareTo(ZERO) > 0)
+                .map(Fatura::getAluno)
+                .map(Aluno::getId)
+                .distinct()
+                .count();
+        return new ResumoFinanceiroAnualResponse(
+                normalizar(previsto),
+                normalizar(recebido),
+                normalizar(pendente),
+                normalizar(vencido),
+                normalizar(parcialmentePago),
+                cancelado,
+                normalizar(estornado),
+                ZERO,
+                normalizar(recebido.subtract(estornado)),
+                dividir(previsto, BigDecimal.valueOf(12)),
+                dividir(recebido, BigDecimal.valueOf(12)),
+                pagosConfirmados == 0 ? ZERO : dividir(recebido, BigDecimal.valueOf(pagosConfirmados)),
+                percentual(recebido, previsto),
+                percentual(vencido, previsto),
+                faturas.size(),
+                pagosConfirmados,
+                alunosAtivosNoAno,
+                alunosComInadimplencia);
+    }
+
+    private List<ResumoFormaPagamentoAnualResponse> agruparFormaPagamentoAnual(List<Pagamento> pagamentos,
+                                                                               BigDecimal totalRecebido) {
+        return pagamentos.stream().filter(p -> p.getStatus() == StatusPagamento.PAGO)
+                .collect(Collectors.groupingBy(Pagamento::getMetodo, LinkedHashMap::new, Collectors.toList()))
+                .entrySet().stream()
+                .map(e -> {
+                    BigDecimal bruto = e.getValue().stream().map(Pagamento::getValor).reduce(ZERO, BigDecimal::add);
+                    return new ResumoFormaPagamentoAnualResponse(e.getKey().name(), e.getValue().size(),
+                            normalizar(bruto), ZERO, normalizar(bruto), percentual(bruto, totalRecebido));
+                })
+                .toList();
+    }
+
+    private List<ResumoTipoPlanoAnualResponse> agruparTipoPlanoAnual(List<Fatura> faturas,
+                                                                     Map<Long, List<Pagamento>> pagamentosPorFatura,
+                                                                     LocalDate dataReferencia,
+                                                                     MetodoPagamento metodoPagamento) {
+        Map<String, List<Fatura>> grupos = new LinkedHashMap<>();
+        grupos.put(TipoPlano.TURMA.name(), new ArrayList<>());
+        grupos.put(TipoPlano.PERSONAL.name(), new ArrayList<>());
+        grupos.put("SEM_PLANO", new ArrayList<>());
+        faturas.stream()
+                .collect(Collectors.groupingBy(f -> tipoPlano(f.getAluno()), LinkedHashMap::new, Collectors.toList()))
+                .forEach((tipo, lista) -> grupos.computeIfAbsent(tipo, key -> new ArrayList<>()).addAll(lista));
+        return grupos.entrySet().stream()
+                .map(e -> {
+                    List<Fatura> grupo = e.getValue();
+                    List<Pagamento> pagamentos = grupo.stream()
+                            .flatMap(f -> pagamentosMesDaFatura(f, pagamentosPorFatura, metodoPagamento).stream())
+                            .toList();
+                    BigDecimal previsto = somaFaturas(grupo.stream().filter(f -> f.getStatus() != StatusFatura.CANCELADA).toList());
+                    BigDecimal recebido = recebido(pagamentos);
+                    BigDecimal pendente = grupo.stream().map(f -> saldo(f, pagamentosMesDaFatura(f, pagamentosPorFatura, metodoPagamento)))
+                            .reduce(ZERO, BigDecimal::add);
+                    BigDecimal vencido = grupo.stream()
+                            .filter(f -> f.getDataVencimento().isBefore(dataReferencia))
+                            .map(f -> saldo(f, pagamentosMesDaFatura(f, pagamentosPorFatura, metodoPagamento)))
+                            .reduce(ZERO, BigDecimal::add);
+                    int pagamentosConfirmados = (int) pagamentos.stream().filter(p -> p.getStatus() == StatusPagamento.PAGO).count();
+                    return new ResumoTipoPlanoAnualResponse(e.getKey(),
+                            (int) grupo.stream().map(f -> f.getAluno().getId()).distinct().count(),
+                            grupo.size(),
+                            previsto,
+                            recebido,
+                            normalizar(pendente),
+                            normalizar(vencido),
+                            pagamentosConfirmados == 0 ? ZERO : dividir(recebido, BigDecimal.valueOf(pagamentosConfirmados)),
+                            percentual(recebido, previsto),
+                            (int) grupo.stream()
+                                    .filter(f -> f.getDataVencimento().isBefore(dataReferencia))
+                                    .filter(f -> saldo(f, pagamentosMesDaFatura(f, pagamentosPorFatura, metodoPagamento)).compareTo(ZERO) > 0)
+                                    .map(f -> f.getAluno().getId())
+                                    .distinct()
+                                    .count());
+                })
+                .toList();
+    }
+
+    private List<AlunoInadimplenciaAnualResponse> maioresInadimplentesAnual(List<Fatura> faturas,
+                                                                            Map<Long, List<Pagamento>> pagamentosPorFatura,
+                                                                            LocalDate dataReferencia,
+                                                                            int limite) {
+        return faturas.stream()
+                .filter(f -> f.getDataVencimento().isBefore(dataReferencia))
+                .filter(f -> saldo(f, pagamentosPorFatura.get(f.getId())).compareTo(ZERO) > 0)
+                .collect(Collectors.groupingBy(f -> f.getAluno().getId()))
+                .values().stream()
+                .map(lista -> {
+                    Aluno aluno = lista.get(0).getAluno();
+                    LocalDate antigo = lista.stream().map(Fatura::getDataVencimento).min(LocalDate::compareTo).orElse(dataReferencia);
+                    BigDecimal total = lista.stream().map(f -> saldo(f, pagamentosPorFatura.get(f.getId()))).reduce(ZERO, BigDecimal::add);
+                    int maiorAtraso = lista.stream()
+                            .map(Fatura::getDataVencimento)
+                            .mapToInt(v -> Math.toIntExact(ChronoUnit.DAYS.between(v, dataReferencia)))
+                            .max()
+                            .orElse(0);
+                    return new AlunoInadimplenciaAnualResponse(aluno.getId(), aluno.getNome(), aluno.getEmail(), tipoPlano(aluno),
+                            lista.size(), normalizar(total), antigo, maiorAtraso);
+                })
+                .sorted(Comparator.comparing(AlunoInadimplenciaAnualResponse::getTotalVencido).reversed()
+                        .thenComparing(AlunoInadimplenciaAnualResponse::getVencimentoMaisAntigo))
+                .limit(limite)
+                .toList();
+    }
+
+    private List<Pagamento> pagamentosMesDaFatura(Fatura fatura, Map<Long, List<Pagamento>> pagamentosPorFatura,
+                                                  MetodoPagamento metodoPagamento) {
+        return pagamentosPorFatura.getOrDefault(fatura.getId(), List.of()).stream()
+                .filter(p -> metodoPagamento == null || p.getMetodo() == metodoPagamento)
+                .toList();
+    }
+
+    private Integer escolherMelhorMes(List<ResumoFinanceiroMesResponse> meses) {
+        return meses.stream()
+                .filter(this::temMovimentacao)
+                .max(Comparator.comparing(ResumoFinanceiroMesResponse::getTotalRecebido)
+                        .thenComparing(m -> -m.getMes()))
+                .map(ResumoFinanceiroMesResponse::getMes)
+                .orElse(null);
+    }
+
+    private Integer escolherPiorMes(List<ResumoFinanceiroMesResponse> meses) {
+        return meses.stream()
+                .filter(this::temMovimentacao)
+                .min(Comparator.comparing(ResumoFinanceiroMesResponse::getTotalRecebido)
+                        .thenComparing(ResumoFinanceiroMesResponse::getMes))
+                .map(ResumoFinanceiroMesResponse::getMes)
+                .orElse(null);
+    }
+
+    private Integer escolherMesMaiorInadimplencia(List<ResumoFinanceiroMesResponse> meses) {
+        return meses.stream()
+                .filter(m -> m.getTotalVencido().compareTo(ZERO) > 0)
+                .max(Comparator.comparing(ResumoFinanceiroMesResponse::getTotalVencido)
+                        .thenComparing(m -> -m.getMes()))
+                .map(ResumoFinanceiroMesResponse::getMes)
+                .orElse(null);
+    }
+
+    private boolean temMovimentacao(ResumoFinanceiroMesResponse mes) {
+        return mes.getTotalPrevisto().compareTo(ZERO) > 0
+                || mes.getTotalRecebido().compareTo(ZERO) > 0
+                || mes.getTotalPendente().compareTo(ZERO) > 0
+                || mes.getTotalVencido().compareTo(ZERO) > 0
+                || mes.getTotalEstornado().compareTo(ZERO) > 0;
+    }
+
+    private BigDecimal percentual(BigDecimal valor, BigDecimal total) {
+        if (total == null || total.compareTo(ZERO) == 0) {
+            return ZERO;
+        }
+        return normalizar(valor.multiply(BigDecimal.valueOf(100)).divide(total, 2, RoundingMode.HALF_UP));
+    }
+
+    private BigDecimal variacaoPercentual(BigDecimal atual, BigDecimal anterior) {
+        if (anterior == null || anterior.compareTo(ZERO) == 0) {
+            return null;
+        }
+        return normalizar(atual.subtract(anterior).multiply(BigDecimal.valueOf(100)).divide(anterior, 2, RoundingMode.HALF_UP));
+    }
+
+    private BigDecimal dividir(BigDecimal valor, BigDecimal divisor) {
+        if (divisor == null || divisor.compareTo(ZERO) == 0) {
+            return ZERO;
+        }
+        return normalizar(valor.divide(divisor, 2, RoundingMode.HALF_UP));
+    }
+
     private AlunoFinanceiroMensalResponse montarLinhaAluno(Aluno aluno, Fatura fatura, Map<Long, List<Pagamento>> pagamentosPorFatura,
                                                           boolean possuiDebitoAnterior, BigDecimal debitoVencido,
                                                           Periodo periodo, LocalDate hoje) {
@@ -232,6 +583,7 @@ public class RelatorioFinanceiroService {
         }
         return pagamentoRepository.findMensalidadesPorFaturas(academiaId, faturaIds).stream()
                 .filter(p -> p.getFatura() != null)
+                .filter(p -> p.getTipoCobranca() == TipoCobranca.MENSALIDADE)
                 .collect(Collectors.groupingBy(p -> p.getFatura().getId()));
     }
 

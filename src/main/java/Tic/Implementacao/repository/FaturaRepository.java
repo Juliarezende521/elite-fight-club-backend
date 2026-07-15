@@ -43,6 +43,17 @@ public interface FaturaRepository extends JpaRepository<Fatura, Long> {
             join fetch f.aluno a
             left join fetch a.plano p
             where f.academia.id = :academiaId
+              and f.mesReferencia between :inicio and :fim
+            """)
+    List<Fatura> findMensaisDoPeriodoComAlunoPlano(@Param("academiaId") Long academiaId,
+                                                   @Param("inicio") LocalDate inicio,
+                                                   @Param("fim") LocalDate fim);
+
+    @Query("""
+            select f from Fatura f
+            join fetch f.aluno a
+            left join fetch a.plano p
+            where f.academia.id = :academiaId
               and f.dataVencimento < :dataReferencia
               and f.status <> Tic.Implementacao.model.StatusFatura.CANCELADA
             """)

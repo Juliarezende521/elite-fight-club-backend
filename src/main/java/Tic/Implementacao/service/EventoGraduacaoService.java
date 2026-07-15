@@ -37,6 +37,7 @@ public class EventoGraduacaoService {
     private final AlunoRepository alunoRepository;
     private final GraduacaoRepository graduacaoRepository;
     private final GraduacaoAlunoService graduacaoAlunoService;
+    private final NotificacaoService notificacaoService;
     private final PermissaoService permissaoService;
     private final Clock clock;
 
@@ -47,6 +48,7 @@ public class EventoGraduacaoService {
                                   AlunoRepository alunoRepository,
                                   GraduacaoRepository graduacaoRepository,
                                   GraduacaoAlunoService graduacaoAlunoService,
+                                  NotificacaoService notificacaoService,
                                   PermissaoService permissaoService,
                                   Clock clock) {
         this.eventoRepository = eventoRepository;
@@ -56,6 +58,7 @@ public class EventoGraduacaoService {
         this.alunoRepository = alunoRepository;
         this.graduacaoRepository = graduacaoRepository;
         this.graduacaoAlunoService = graduacaoAlunoService;
+        this.notificacaoService = notificacaoService;
         this.permissaoService = permissaoService;
         this.clock = clock;
     }
@@ -144,7 +147,9 @@ public class EventoGraduacaoService {
                     convite.setRespondidoEm(LocalDateTime.now(clock));
                     conviteRepository.save(convite);
                 });
-        return EventoGraduacaoResponse.from(eventoRepository.save(evento));
+        EventoGraduacao salvo = eventoRepository.save(evento);
+        notificacaoService.notificarEventoCancelado(salvo);
+        return EventoGraduacaoResponse.from(salvo);
     }
 
     @Transactional
@@ -333,7 +338,9 @@ public class EventoGraduacaoService {
                 ? StatusInscricaoGraduacao.CONFIRMADA
                 : StatusInscricaoGraduacao.PENDENTE_PAGAMENTO);
         inscricao.setChaveInscricaoAtiva(chaveInscricao(evento.getId(), aluno.getId()));
-        return InscricaoGraduacaoResponse.from(inscricaoRepository.save(inscricao));
+        InscricaoGraduacao salva = inscricaoRepository.save(inscricao);
+        notificacaoService.notificarInscricaoGraduacao(salva);
+        return InscricaoGraduacaoResponse.from(salva);
     }
 
     @Transactional
@@ -386,7 +393,9 @@ public class EventoGraduacaoService {
         convite.setEnviadoEm(LocalDateTime.now(clock));
         convite.setEnviadoPor(permissaoService.usuarioAtual());
         convite.setJustificativa(justificativa);
-        return conviteRepository.save(convite);
+        ConviteGraduacao salvo = conviteRepository.save(convite);
+        notificacaoService.notificarConviteGraduacao(salvo);
+        return salvo;
     }
 
     private Optional<EventoGraduacaoAlunoResponse> montarEventoAluno(EventoGraduacao evento, Aluno aluno) {

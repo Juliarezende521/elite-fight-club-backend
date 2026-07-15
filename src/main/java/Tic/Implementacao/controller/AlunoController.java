@@ -10,11 +10,13 @@ import Tic.Implementacao.dto.graduacao.convite.ConviteGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.evento.EventoGraduacaoAlunoResponse;
 import Tic.Implementacao.dto.graduacao.inscricao.InscricaoGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.inscricao.CriarPixInscricaoGraduacaoResponse;
+import Tic.Implementacao.dto.notificacao.NotificacaoResponse;
 import Tic.Implementacao.model.Aluno;
 import Tic.Implementacao.service.AlunoService;
 import Tic.Implementacao.service.AvaliacaoGraduacaoService;
 import Tic.Implementacao.service.EventoGraduacaoService;
 import Tic.Implementacao.service.GraduacaoAlunoService;
+import Tic.Implementacao.service.NotificacaoService;
 import Tic.Implementacao.service.PagamentoService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -32,16 +34,19 @@ public class AlunoController {
     private final EventoGraduacaoService eventoGraduacaoService;
     private final PagamentoService pagamentoService;
     private final AvaliacaoGraduacaoService avaliacaoGraduacaoService;
+    private final NotificacaoService notificacaoService;
 
     public AlunoController(AlunoService service, GraduacaoAlunoService graduacaoAlunoService,
                            EventoGraduacaoService eventoGraduacaoService,
                            PagamentoService pagamentoService,
-                           AvaliacaoGraduacaoService avaliacaoGraduacaoService){
+                           AvaliacaoGraduacaoService avaliacaoGraduacaoService,
+                           NotificacaoService notificacaoService){
         this.service = service;
         this.graduacaoAlunoService = graduacaoAlunoService;
         this.eventoGraduacaoService = eventoGraduacaoService;
         this.pagamentoService = pagamentoService;
         this.avaliacaoGraduacaoService = avaliacaoGraduacaoService;
+        this.notificacaoService = notificacaoService;
     }
 
     //GET
@@ -175,6 +180,23 @@ public class AlunoController {
     @GetMapping("/me/avaliacoes-graduacao/{avaliacaoId}")
     public ResponseEntity<AvaliacaoGraduacaoResponse> minhaAvaliacaoGraduacao(@PathVariable Long avaliacaoId) {
         return ResponseEntity.ok(avaliacaoGraduacaoService.buscarAvaliacaoAlunoAtual(avaliacaoId));
+    }
+
+    @GetMapping("/me/notificacoes")
+    public ResponseEntity<List<NotificacaoResponse>> minhasNotificacoes(
+            @RequestParam(defaultValue = "false") boolean somenteNaoLidas) {
+        return ResponseEntity.ok(notificacaoService.listarDoUsuarioAtual(somenteNaoLidas));
+    }
+
+    @PatchMapping("/me/notificacoes/{id}/lida")
+    public ResponseEntity<NotificacaoResponse> marcarNotificacaoComoLida(@PathVariable Long id) {
+        return ResponseEntity.ok(notificacaoService.marcarComoLida(id));
+    }
+
+    @PatchMapping("/me/notificacoes/marcar-todas-lidas")
+    public ResponseEntity<Void> marcarTodasNotificacoesComoLidas() {
+        notificacaoService.marcarTodasComoLidas();
+        return ResponseEntity.noContent().build();
     }
 
 

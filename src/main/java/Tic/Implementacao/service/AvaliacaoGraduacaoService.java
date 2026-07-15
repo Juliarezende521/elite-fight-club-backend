@@ -26,6 +26,7 @@ public class AvaliacaoGraduacaoService {
     private final EventoGraduacaoPrajiedRepository eventoPrajiedRepository;
     private final AlunoRepository alunoRepository;
     private final HistoricoGraduacaoRepository historicoRepository;
+    private final NotificacaoService notificacaoService;
     private final PermissaoService permissaoService;
     private final Clock clock;
 
@@ -35,6 +36,7 @@ public class AvaliacaoGraduacaoService {
                                      EventoGraduacaoPrajiedRepository eventoPrajiedRepository,
                                      AlunoRepository alunoRepository,
                                      HistoricoGraduacaoRepository historicoRepository,
+                                     NotificacaoService notificacaoService,
                                      PermissaoService permissaoService,
                                      Clock clock) {
         this.avaliacaoRepository = avaliacaoRepository;
@@ -43,6 +45,7 @@ public class AvaliacaoGraduacaoService {
         this.eventoPrajiedRepository = eventoPrajiedRepository;
         this.alunoRepository = alunoRepository;
         this.historicoRepository = historicoRepository;
+        this.notificacaoService = notificacaoService;
         this.permissaoService = permissaoService;
         this.clock = clock;
     }
@@ -82,7 +85,9 @@ public class AvaliacaoGraduacaoService {
         }
 
         inscricaoRepository.save(inscricao);
-        return AvaliacaoGraduacaoResponse.from(avaliacaoRepository.save(avaliacao));
+        AvaliacaoGraduacao salva = avaliacaoRepository.save(avaliacao);
+        notificacaoService.notificarResultadoAvaliacao(salva);
+        return AvaliacaoGraduacaoResponse.from(salva);
     }
 
     @Transactional
@@ -118,7 +123,9 @@ public class AvaliacaoGraduacaoService {
         }
 
         inscricaoRepository.save(inscricao);
-        return AvaliacaoGraduacaoResponse.from(avaliacaoRepository.save(avaliacao));
+        AvaliacaoGraduacao salva = avaliacaoRepository.save(avaliacao);
+        notificacaoService.notificarResultadoAvaliacao(salva);
+        return AvaliacaoGraduacaoResponse.from(salva);
     }
 
     @Transactional
@@ -182,7 +189,9 @@ public class AvaliacaoGraduacaoService {
         avaliacao.setAtualizadoEm(agora);
         inscricao.setStatus(StatusInscricaoGraduacao.CONCLUIDA);
         inscricaoRepository.save(inscricao);
-        return AvaliacaoGraduacaoResponse.from(avaliacaoRepository.save(avaliacao));
+        AvaliacaoGraduacao salva = avaliacaoRepository.save(avaliacao);
+        notificacaoService.notificarPromocaoConfirmada(salva, atualDoAluno, destino);
+        return AvaliacaoGraduacaoResponse.from(salva);
     }
 
     @Transactional(readOnly = true)

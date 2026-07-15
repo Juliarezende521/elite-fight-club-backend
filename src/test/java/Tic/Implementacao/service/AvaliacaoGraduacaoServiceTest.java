@@ -239,6 +239,7 @@ class AvaliacaoGraduacaoServiceTest {
         EventoGraduacaoPrajiedRepository prajiedRepository = mock(EventoGraduacaoPrajiedRepository.class);
         AlunoRepository alunoRepository = mock(AlunoRepository.class);
         HistoricoGraduacaoRepository historicoRepository = mock(HistoricoGraduacaoRepository.class);
+        NotificacaoService notificacaoService = mock(NotificacaoService.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
         Clock clock = Clock.fixed(HOJE.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
@@ -270,9 +271,10 @@ class AvaliacaoGraduacaoServiceTest {
         when(alunoRepository.save(any(Aluno.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AvaliacaoGraduacaoService service = new AvaliacaoGraduacaoService(avaliacaoRepository, eventoRepository,
-                inscricaoRepository, prajiedRepository, alunoRepository, historicoRepository, permissaoService, clock);
+                inscricaoRepository, prajiedRepository, alunoRepository, historicoRepository, notificacaoService,
+                permissaoService, clock);
         return new Fixture(service, avaliacaoRepository, eventoRepository, inscricaoRepository, prajiedRepository,
-                alunoRepository, historicoRepository, permissaoService, academia, atual, destino, aluno, usuario, evento, item, inscricao);
+                alunoRepository, historicoRepository, notificacaoService, permissaoService, academia, atual, destino, aluno, usuario, evento, item, inscricao);
     }
 
     private RegistrarPresencaGraduacaoRequest presenca(StatusPresencaGraduacao status, String observacao) {
@@ -413,6 +415,7 @@ class AvaliacaoGraduacaoServiceTest {
                            EventoGraduacaoPrajiedRepository prajiedRepository,
                            AlunoRepository alunoRepository,
                            HistoricoGraduacaoRepository historicoRepository,
+                           NotificacaoService notificacaoService,
                            PermissaoService permissaoService,
                            Academia academia,
                            Graduacao atual,

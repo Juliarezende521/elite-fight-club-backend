@@ -42,6 +42,7 @@ public class PagamentoService {
     private final FaturaService faturaService;
     private final ProvedorPagamento provedorPagamento;
     private final PermissaoService permissaoService;
+    private final NotificacaoService notificacaoService;
     private final ObjectMapper objectMapper;
     private final AsaasProperties asaasProperties;
     private final Map<Long, Object> locksPorFatura = new ConcurrentHashMap<>();
@@ -52,6 +53,7 @@ public class PagamentoService {
                             AlunoRepository alunoRepository, InscricaoGraduacaoRepository inscricaoGraduacaoRepository,
                             FaturaService faturaService,
                             ProvedorPagamento provedorPagamento, PermissaoService permissaoService,
+                            NotificacaoService notificacaoService,
                             ObjectMapper objectMapper, AsaasProperties asaasProperties) {
         this.repository = repository;
         this.eventoRepository = eventoRepository;
@@ -60,6 +62,7 @@ public class PagamentoService {
         this.faturaService = faturaService;
         this.provedorPagamento = provedorPagamento;
         this.permissaoService = permissaoService;
+        this.notificacaoService = notificacaoService;
         this.objectMapper = objectMapper;
         this.asaasProperties = asaasProperties;
     }
@@ -519,6 +522,7 @@ public class PagamentoService {
             inscricao.setPagoEm(null);
         }
         inscricaoGraduacaoRepository.save(inscricao);
+        notificacaoService.notificarPagamentoGraduacao(pagamento, statusAtual);
     }
 
     private void validarValorPagamentoManual(Fatura fatura, BigDecimal valor) {

@@ -237,6 +237,7 @@ class EventoGraduacaoServiceTest {
         AlunoRepository alunoRepository = mock(AlunoRepository.class);
         GraduacaoRepository graduacaoRepository = mock(GraduacaoRepository.class);
         GraduacaoAlunoService graduacaoAlunoService = mock(GraduacaoAlunoService.class);
+        NotificacaoService notificacaoService = mock(NotificacaoService.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
         Clock clock = Clock.fixed(HOJE.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
@@ -259,9 +260,10 @@ class EventoGraduacaoServiceTest {
         when(graduacaoRepository.findByIdAndAcademiaId(1L, 1L)).thenReturn(Optional.of(atual));
 
         EventoGraduacaoService service = new EventoGraduacaoService(eventoRepository, prajiedRepository, conviteRepository,
-                inscricaoRepository, alunoRepository, graduacaoRepository, graduacaoAlunoService, permissaoService, clock);
+                inscricaoRepository, alunoRepository, graduacaoRepository, graduacaoAlunoService, notificacaoService,
+                permissaoService, clock);
         return new Fixture(service, eventoRepository, prajiedRepository, conviteRepository, inscricaoRepository,
-                alunoRepository, graduacaoRepository, graduacaoAlunoService, permissaoService, academia, atual,
+                alunoRepository, graduacaoRepository, graduacaoAlunoService, notificacaoService, permissaoService, academia, atual,
                 destino, aluno, usuario, evento, item, convite, inscricao);
     }
 
@@ -408,6 +410,7 @@ class EventoGraduacaoServiceTest {
                            AlunoRepository alunoRepository,
                            GraduacaoRepository graduacaoRepository,
                            GraduacaoAlunoService graduacaoAlunoService,
+                           NotificacaoService notificacaoService,
                            PermissaoService permissaoService,
                            Academia academia,
                            Graduacao atual,

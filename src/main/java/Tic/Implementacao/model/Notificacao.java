@@ -9,30 +9,70 @@ import java.time.LocalDateTime;
 
 
 @Entity
-@Table(name = "notificacoes")
-public class Notificacao    {
-
+@Table(
+        name = "notificacoes",
+        uniqueConstraints = @UniqueConstraint(name = "uk_notificacao_chave_idempotencia", columnNames = "chave_idempotencia")
+)
+public class Notificacao {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne
+    @JoinColumn(name = "academia_id")
+    private Academia academia;
+
+    @ManyToOne
+    @JoinColumn(name = "destinatario_id")
+    private Usuario destinatario;
+
     @NotNull(message = "Tipo de notificação é obrigatório")
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "tipo_notificacao", nullable = false, length = 80)
     private TipoNotificacao tipoNotificacao = TipoNotificacao.AVISO_GERAL;
 
+    @Column(length = 180)
+    private String titulo;
 
     @NotBlank(message = "Mensagem é obrigatória")
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2000)
     private String mensagem;
 
     @NotNull(message = "Data de envio é obrigatória")
-    @Column(nullable = false)
+    @Column(name = "data_envio", nullable = false)
     private LocalDateTime dataEnvio;
 
     @Column(nullable = false)
     private boolean enviada = false;
+
+    @Column(nullable = false)
+    private Boolean lida = false;
+
+    @Column(name = "criada_em")
+    private LocalDateTime criadaEm;
+
+    @Column(name = "lida_em")
+    private LocalDateTime lidaEm;
+
+    @Column(name = "referencia_tipo", length = 80)
+    private String referenciaTipo;
+
+    @Column(name = "referencia_id")
+    private Long referenciaId;
+
+    @Column(name = "chave_idempotencia", length = 220)
+    private String chaveIdempotencia;
+
+    @Column(name = "agendada_para")
+    private LocalDateTime agendadaPara;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private StatusNotificacao status = StatusNotificacao.ENVIADA;
+
+    @Column(name = "motivo_falha", length = 1000)
+    private String motivoFalha;
 
     @ManyToOne
     @JoinColumn(name = "aluno_id")
@@ -56,6 +96,25 @@ public class Notificacao    {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Academia getAcademia() {
+        return academia;
+    }
+
+    public void setAcademia(Academia academia) {
+        this.academia = academia;
+    }
+
+    public Usuario getDestinatario() {
+        return destinatario;
+    }
+
+    public void setDestinatario(Usuario destinatario) {
+        this.destinatario = destinatario;
+    }
 
     public TipoNotificacao getTipoNotificacao() {
         return tipoNotificacao;
@@ -63,6 +122,14 @@ public class Notificacao    {
 
     public void setTipoNotificacao(TipoNotificacao tipoNotificacao) {
         this.tipoNotificacao = tipoNotificacao;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
     }
 
     public String getMensagem() {
@@ -89,6 +156,78 @@ public class Notificacao    {
         this.enviada = enviada;
     }
 
+    public Boolean getLida() {
+        return lida;
+    }
+
+    public void setLida(Boolean lida) {
+        this.lida = lida;
+    }
+
+    public LocalDateTime getCriadaEm() {
+        return criadaEm;
+    }
+
+    public void setCriadaEm(LocalDateTime criadaEm) {
+        this.criadaEm = criadaEm;
+    }
+
+    public LocalDateTime getLidaEm() {
+        return lidaEm;
+    }
+
+    public void setLidaEm(LocalDateTime lidaEm) {
+        this.lidaEm = lidaEm;
+    }
+
+    public String getReferenciaTipo() {
+        return referenciaTipo;
+    }
+
+    public void setReferenciaTipo(String referenciaTipo) {
+        this.referenciaTipo = referenciaTipo;
+    }
+
+    public Long getReferenciaId() {
+        return referenciaId;
+    }
+
+    public void setReferenciaId(Long referenciaId) {
+        this.referenciaId = referenciaId;
+    }
+
+    public String getChaveIdempotencia() {
+        return chaveIdempotencia;
+    }
+
+    public void setChaveIdempotencia(String chaveIdempotencia) {
+        this.chaveIdempotencia = chaveIdempotencia;
+    }
+
+    public LocalDateTime getAgendadaPara() {
+        return agendadaPara;
+    }
+
+    public void setAgendadaPara(LocalDateTime agendadaPara) {
+        this.agendadaPara = agendadaPara;
+    }
+
+    public StatusNotificacao getStatus() {
+        return status;
+    }
+
+    public void setStatus(StatusNotificacao status) {
+        this.status = status;
+    }
+
+    public String getMotivoFalha() {
+        return motivoFalha;
+    }
+
+    public void setMotivoFalha(String motivoFalha) {
+        this.motivoFalha = motivoFalha;
+    }
+
     public Aluno getAluno() {
         return aluno;
     }
@@ -108,5 +247,6 @@ public class Notificacao    {
     public void enviar(){
         this.enviada = true;
         this.dataEnvio = LocalDateTime.now();
+        this.status = StatusNotificacao.ENVIADA;
     }
 }

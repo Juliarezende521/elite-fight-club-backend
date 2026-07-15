@@ -67,14 +67,14 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         pix.setIdPagamentoExterno("pay_1");
         pix.setDataExpiracao(LocalDateTime.now(CLOCK).plusHours(2));
         preparar(fx, List.of(fatura), List.of(pix), List.of(fx.usuarioAluno));
-        when(fx.preferenciaPagamentoAlunoService.obterContextoPagamento(fatura))
+        when(fx.preferenciaPagamentoAlunoService.montarContextoPagamento(eq(fatura), anyList(), nullable(PreferenciaPagamentoAluno.class)))
                 .thenReturn(new ContextoPagamentoAluno(FormaPagamentoPreferida.PIX, StatusAutorizacaoPagamento.NAO_SOLICITADA,
-                        false, false, true));
+                        false, false, true, false));
         when(fx.notificacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         fx.service.gerarLembretesDeVencimento(HOJE);
 
-        verify(fx.notificacaoRepository).save(argThat(n -> n.getMensagem().contains("Pix disponível")));
+        verify(fx.notificacaoRepository).save(argThat(n -> n.getMensagem().contains("Existe um Pix disponível")));
         verify(fx.pagamentoRepository, never()).save(any());
         verify(fx.faturaRepository, never()).save(any());
     }
@@ -85,14 +85,80 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         Fatura fatura = fatura(fx, 101L, StatusFatura.PENDENTE, HOJE, "200");
         Pagamento processando = pagamento(fx, fatura, 1L, StatusPagamento.PROCESSANDO, "200");
         preparar(fx, List.of(fatura), List.of(processando), List.of(fx.usuarioAluno));
-        when(fx.preferenciaPagamentoAlunoService.obterContextoPagamento(fatura))
+        when(fx.preferenciaPagamentoAlunoService.montarContextoPagamento(eq(fatura), anyList(), nullable(PreferenciaPagamentoAluno.class)))
                 .thenReturn(new ContextoPagamentoAluno(FormaPagamentoPreferida.PIX_AUTOMATICO, StatusAutorizacaoPagamento.ATIVA,
-                        true, true, false));
+                        true, true, false, false));
         when(fx.notificacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         fx.service.gerarLembretesDeVencimento(HOJE);
 
-        verify(fx.notificacaoRepository).save(argThat(n -> n.getTipoNotificacao() == TipoNotificacao.PAGAMENTO_MENSALIDADE_PROCESSANDO));
+        verify(fx.notificacaoRepository).save(argThat(n -> n.getTipoNotificacao() == TipoNotificacao.PAGAMENTO_MENSALIDADE_PROCESSANDO
+                && n.getMensagem().contains("pagamento automático")));
+    }
+
+    @Test
+    void pixAutomaticoPendenteInformaAutorizacaoNaoConcluida() {
+        Fixture fx = fixture();
+        Fatura fatura = fatura(fx, 101L, StatusFatura.PENDENTE, HOJE, "200");
+        preparar(fx, List.of(fatura), List.of(), List.of(fx.usuarioAluno));
+        when(fx.preferenciaPagamentoAlunoService.montarContextoPagamento(eq(fatura), anyList(), nullable(PreferenciaPagamentoAluno.class)))
+                .thenReturn(new ContextoPagamentoAluno(FormaPagamentoPreferida.PIX_AUTOMATICO, StatusAutorizacaoPagamento.PENDENTE,
+                        false, false, false, false));
+        when(fx.notificacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        fx.service.gerarLembretesDeVencimento(HOJE);
+
+        verify(fx.notificacaoRepository).save(argThat(n -> n.getMensagem().contains("autorização do Pix Automático ainda não foi concluída")));
+    }
+
+    @Test
+    void cartaoNaoConfiguradoInformaConclusaoPendente() {
+        Fixture fx = fixture();
+        Fatura fatura = fatura(fx, 101L, StatusFatura.PENDENTE, HOJE, "200");
+        preparar(fx, List.of(fatura), List.of(), List.of(fx.usuarioAluno));
+        when(fx.preferenciaPagamentoAlunoService.montarContextoPagamento(eq(fatura), anyList(), nullable(PreferenciaPagamentoAluno.class)))
+                .thenReturn(new ContextoPagamentoAluno(FormaPagamentoPreferida.CARTAO, StatusAutorizacaoPagamento.NAO_SOLICITADA,
+                        false, false, false, false));
+        when(fx.notificacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        fx.service.gerarLembretesDeVencimento(HOJE);
+
+        verify(fx.notificacaoRepository).save(argThat(n -> n.getMensagem().contains("forma cartão ainda precisa ser concluída")));
+    }
+
+    @Test
+    void boletoValidoInformaCobrancaDisponivelSemCriarPagamento() {
+        Fixture fx = fixture();
+        Fatura fatura = fatura(fx, 101L, StatusFatura.PENDENTE, HOJE, "200");
+        Pagamento boleto = pagamento(fx, fatura, 1L, StatusPagamento.PENDENTE, "200");
+        boleto.setMetodo(MetodoPagamento.BOLETO);
+        boleto.setIdPagamentoExterno("bol_1");
+        boleto.setDataExpiracao(LocalDateTime.now(CLOCK).plusDays(1));
+        preparar(fx, List.of(fatura), List.of(boleto), List.of(fx.usuarioAluno));
+        when(fx.preferenciaPagamentoAlunoService.montarContextoPagamento(eq(fatura), anyList(), nullable(PreferenciaPagamentoAluno.class)))
+                .thenReturn(new ContextoPagamentoAluno(FormaPagamentoPreferida.BOLETO, StatusAutorizacaoPagamento.NAO_SOLICITADA,
+                        false, false, false, true));
+        when(fx.notificacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        fx.service.gerarLembretesDeVencimento(HOJE);
+
+        verify(fx.notificacaoRepository).save(argThat(n -> n.getMensagem().contains("boleto disponível")));
+        verify(fx.pagamentoRepository, never()).save(any());
+    }
+
+    @Test
+    void dinheiroAguardaConfirmacaoManual() {
+        Fixture fx = fixture();
+        Fatura fatura = fatura(fx, 101L, StatusFatura.PENDENTE, HOJE, "200");
+        preparar(fx, List.of(fatura), List.of(), List.of(fx.usuarioAluno));
+        when(fx.preferenciaPagamentoAlunoService.montarContextoPagamento(eq(fatura), anyList(), nullable(PreferenciaPagamentoAluno.class)))
+                .thenReturn(new ContextoPagamentoAluno(FormaPagamentoPreferida.DINHEIRO, StatusAutorizacaoPagamento.NAO_SOLICITADA,
+                        false, false, false, false));
+        when(fx.notificacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        fx.service.gerarLembretesDeVencimento(HOJE);
+
+        verify(fx.notificacaoRepository).save(argThat(n -> n.getMensagem().contains("confirmação manual")));
     }
 
     @Test
@@ -188,9 +254,10 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         when(fx.faturaRepository.findComAlunoByAcademiaIdAndDataVencimento(1L, vencimento)).thenReturn(faturas);
         when(fx.pagamentoRepository.findMensalidadesComFaturaPorFaturas(eq(1L), anyList())).thenReturn(pagamentos);
         when(fx.usuarioRepository.findByAcademiaIdAndAlunoIdIn(eq(1L), anyList())).thenReturn(usuarios);
+        when(fx.preferenciaPagamentoRepository.findByAcademiaIdAndAlunoIdInAndAtivaTrue(eq(1L), anyList())).thenReturn(List.of());
         for (Fatura fatura : faturas) {
-            when(fx.preferenciaPagamentoAlunoService.obterContextoPagamento(fatura))
-                    .thenReturn(new ContextoPagamentoAluno(null, null, false, false, false));
+            when(fx.preferenciaPagamentoAlunoService.montarContextoPagamento(eq(fatura), anyList(), nullable(PreferenciaPagamentoAluno.class)))
+                    .thenReturn(new ContextoPagamentoAluno(null, null, false, false, false, false));
         }
     }
 
@@ -199,6 +266,7 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         PagamentoRepository pagamentoRepository = mock(PagamentoRepository.class);
         NotificacaoRepository notificacaoRepository = mock(NotificacaoRepository.class);
         UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+        PreferenciaPagamentoAlunoRepository preferenciaPagamentoRepository = mock(PreferenciaPagamentoAlunoRepository.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
         PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService = mock(PreferenciaPagamentoAlunoService.class);
         Academia academia = new Academia();
@@ -222,9 +290,9 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         usuario.setAluno(aluno);
         NotificacaoFinanceiraAutomacaoService service = new NotificacaoFinanceiraAutomacaoService(
                 faturaRepository, pagamentoRepository, notificacaoRepository, usuarioRepository,
-                preferenciaPagamentoAlunoService, permissaoService, CLOCK);
+                preferenciaPagamentoRepository, preferenciaPagamentoAlunoService, permissaoService, CLOCK, 2);
         return new Fixture(service, faturaRepository, pagamentoRepository, notificacaoRepository, usuarioRepository,
-                preferenciaPagamentoAlunoService, permissaoService, academia, aluno, usuario);
+                preferenciaPagamentoRepository, preferenciaPagamentoAlunoService, permissaoService, academia, aluno, usuario);
     }
 
     private Fatura fatura(Fixture fx, Long id, StatusFatura status, LocalDate vencimento, String valor) {
@@ -270,6 +338,7 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
                            PagamentoRepository pagamentoRepository,
                            NotificacaoRepository notificacaoRepository,
                            UsuarioRepository usuarioRepository,
+                           PreferenciaPagamentoAlunoRepository preferenciaPagamentoRepository,
                            PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService,
                            PermissaoService permissaoService,
                            Academia academia,

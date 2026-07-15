@@ -6,6 +6,7 @@ import Tic.Implementacao.dto.financeiro.preferencia.ContextoPagamentoAluno;
 import Tic.Implementacao.model.*;
 import Tic.Implementacao.repository.*;
 import Tic.Implementacao.security.PermissaoService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,24 +30,30 @@ public class NotificacaoFinanceiraAutomacaoService {
     private final PagamentoRepository pagamentoRepository;
     private final NotificacaoRepository notificacaoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final PreferenciaPagamentoAlunoRepository preferenciaPagamentoRepository;
     private final PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService;
     private final PermissaoService permissaoService;
     private final Clock clock;
+    private final int atrasoDias;
 
     public NotificacaoFinanceiraAutomacaoService(FaturaRepository faturaRepository,
                                                 PagamentoRepository pagamentoRepository,
                                                 NotificacaoRepository notificacaoRepository,
                                                 UsuarioRepository usuarioRepository,
+                                                PreferenciaPagamentoAlunoRepository preferenciaPagamentoRepository,
                                                 PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService,
                                                 PermissaoService permissaoService,
-                                                Clock clock) {
+                                                Clock clock,
+                                                @Value("${financeiro.notificacoes.atraso-dias:2}") int atrasoDias) {
         this.faturaRepository = faturaRepository;
         this.pagamentoRepository = pagamentoRepository;
         this.notificacaoRepository = notificacaoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.preferenciaPagamentoRepository = preferenciaPagamentoRepository;
         this.preferenciaPagamentoAlunoService = preferenciaPagamentoAlunoService;
         this.permissaoService = permissaoService;
         this.clock = clock;
+        this.atrasoDias = atrasoDias;
     }
 
     @Transactional
@@ -141,7 +148,7 @@ public class NotificacaoFinanceiraAutomacaoService {
             permissaoService.exigirAdmin();
         }
         Long academiaId = permissaoService.academiaAtualId();
-        LocalDate vencimentoAnalisado = dataReferencia.minusDays(2);
+        LocalDate vencimentoAnalisado = dataReferencia.minusDays(atrasoDias);
         List<Fatura> faturas = faturaRepository.findComAlunoByAcademiaIdAndDataVencimento(academiaId, vencimentoAnalisado);
         Dados dados = dados(academiaId, faturas);
         Resultado resultado = new Resultado(dataReferencia);
@@ -163,17 +170,16 @@ public class NotificacaoFinanceiraAutomacaoService {
             resultado.falha(Motivo.USUARIO_NAO_VINCULADO);
             return;
         }
-        ContextoPagamentoAluno contexto = preferenciaPagamentoAlunoService.obterContextoPagamento(fatura);
+        ContextoPagamentoAluno contexto = preferenciaPagamentoAlunoService.montarContextoPagamento(
+                fatura, pagamentos, dados.preferenciasPorAluno().get(fatura.getAluno().getId()));
         if (Boolean.TRUE.equals(contexto.getPossuiPagamentoProcessando())) {
             criarOuContar(fatura, usuario.get(), TipoNotificacao.PAGAMENTO_MENSALIDADE_PROCESSANDO,
                     "Pagamento em processamento",
-                    "Seu pagamento está sendo processado. Aguarde a confirmação antes de iniciar outra tentativa.",
+                    mensagemPagamentoProcessando(contexto),
                     "PAGAMENTO_MENSALIDADE_PROCESSANDO:" + fatura.getId() + ":" + StatusPagamento.PROCESSANDO.name(), resultado);
             return;
         }
-        String mensagem = Boolean.TRUE.equals(contexto.getPossuiPixValido())
-                ? "Sua mensalidade vence hoje. Há um Pix disponível na área financeira."
-                : "Sua mensalidade vence hoje. Acesse a área financeira para consultar as formas de pagamento.";
+        String mensagem = mensagemVencimento(contexto);
         mensagem += complementoPreferencia(contexto);
         if (saldo.compareTo(fatura.getValor()) < 0) {
             mensagem += " " + mensagemSaldo(saldo);
@@ -192,7 +198,8 @@ public class NotificacaoFinanceiraAutomacaoService {
             resultado.ignorada(motivo);
             return;
         }
-        ContextoPagamentoAluno contexto = preferenciaPagamentoAlunoService.obterContextoPagamento(fatura);
+        ContextoPagamentoAluno contexto = preferenciaPagamentoAlunoService.montarContextoPagamento(
+                fatura, pagamentos, dados.preferenciasPorAluno().get(fatura.getAluno().getId()));
         if (Boolean.TRUE.equals(contexto.getPossuiPagamentoProcessando())) {
             resultado.ignorada(Motivo.PAGAMENTO_PROCESSANDO);
             return;
@@ -264,7 +271,10 @@ public class NotificacaoFinanceiraAutomacaoService {
         Map<Long, Usuario> usuariosPorAluno = alunoIds.isEmpty() ? Map.of()
                 : usuarioRepository.findByAcademiaIdAndAlunoIdIn(academiaId, alunoIds).stream()
                 .collect(Collectors.toMap(u -> u.getAluno().getId(), u -> u, (a, b) -> a));
-        return new Dados(pagamentosPorFatura, usuariosPorAluno);
+        Map<Long, PreferenciaPagamentoAluno> preferenciasPorAluno = alunoIds.isEmpty() ? Map.of()
+                : preferenciaPagamentoRepository.findByAcademiaIdAndAlunoIdInAndAtivaTrue(academiaId, alunoIds).stream()
+                .collect(Collectors.toMap(p -> p.getAluno().getId(), p -> p, (a, b) -> a));
+        return new Dados(pagamentosPorFatura, usuariosPorAluno, preferenciasPorAluno);
     }
 
     private Optional<Usuario> usuarioValido(Fatura fatura, Dados dados) {
@@ -283,17 +293,39 @@ public class NotificacaoFinanceiraAutomacaoService {
                 .filter(u -> u.getPerfil() == PerfilUsuario.ALUNO);
     }
 
+    private String mensagemPagamentoProcessando(ContextoPagamentoAluno contexto) {
+        if (contexto != null
+                && contexto.getFormaPreferida() == FormaPagamentoPreferida.PIX_AUTOMATICO
+                && Boolean.TRUE.equals(contexto.getPagamentoAutomaticoAtivo())) {
+            return "Seu pagamento automático está sendo processado.";
+        }
+        return "Seu pagamento está sendo processado. Aguarde a confirmação antes de iniciar outra tentativa.";
+    }
+
+    private String mensagemVencimento(ContextoPagamentoAluno contexto) {
+        if (contexto != null && Boolean.TRUE.equals(contexto.getPossuiPixValido())) {
+            return "Sua mensalidade vence hoje. Existe um Pix disponível na área financeira.";
+        }
+        if (contexto != null && Boolean.TRUE.equals(contexto.getPossuiBoletoValido())) {
+            return "Sua mensalidade vence hoje. Existe um boleto disponível na área financeira.";
+        }
+        if (contexto != null && contexto.getFormaPreferida() == FormaPagamentoPreferida.DINHEIRO) {
+            return "Sua mensalidade vence hoje. Aguardamos a confirmação manual do pagamento em dinheiro.";
+        }
+        return "Sua mensalidade vence hoje. Acesse a área financeira para consultar as formas de pagamento.";
+    }
+
     private String complementoPreferencia(ContextoPagamentoAluno contexto) {
         if (contexto == null || contexto.getFormaPreferida() == null) {
             return "";
         }
         if (contexto.getFormaPreferida() == FormaPagamentoPreferida.PIX_AUTOMATICO
                 && !Boolean.TRUE.equals(contexto.getPagamentoAutomaticoAtivo())) {
-            return " A autorização do Pix Automático ainda não está ativa.";
+            return " A autorização do Pix Automático ainda não foi concluída.";
         }
         if (contexto.getFormaPreferida() == FormaPagamentoPreferida.CARTAO
                 && contexto.getStatusAutorizacao() != StatusAutorizacaoPagamento.ATIVA) {
-            return " O cartão ainda não possui autorização ativa no sistema.";
+            return " A forma cartão ainda precisa ser concluída.";
         }
         return "";
     }
@@ -335,7 +367,9 @@ public class NotificacaoFinanceiraAutomacaoService {
                 .collect(Collectors.toMap(Fatura::getId, f -> f));
     }
 
-    private record Dados(Map<Long, List<Pagamento>> pagamentosPorFatura, Map<Long, Usuario> usuariosPorAluno) {
+    private record Dados(Map<Long, List<Pagamento>> pagamentosPorFatura,
+                         Map<Long, Usuario> usuariosPorAluno,
+                         Map<Long, PreferenciaPagamentoAluno> preferenciasPorAluno) {
     }
 
     private enum Motivo {

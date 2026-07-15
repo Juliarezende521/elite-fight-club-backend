@@ -130,17 +130,26 @@ public class PreferenciaPagamentoAlunoService {
         Optional<PreferenciaPagamentoAluno> preferencia = preferenciaRepository
                 .findByAcademiaIdAndAlunoIdAndAtivaTrue(academiaId, alunoId);
         List<Pagamento> pagamentos = pagamentoRepository.findMensalidadesComFaturaPorFaturas(academiaId, List.of(fatura.getId()));
-        boolean possuiProcessando = pagamentos.stream().anyMatch(p -> p.getStatus() == StatusPagamento.PROCESSANDO);
-        boolean possuiPixValido = pagamentos.stream().anyMatch(this::pixPendenteValido);
+        return montarContextoPagamento(fatura, pagamentos, preferencia.orElse(null));
+    }
 
-        if (preferencia.isEmpty()) {
-            return new ContextoPagamentoAluno(null, null, false, possuiProcessando, possuiPixValido);
+    public ContextoPagamentoAluno montarContextoPagamento(Fatura fatura, List<Pagamento> pagamentos,
+                                                          PreferenciaPagamentoAluno preferencia) {
+        if (fatura == null) {
+            return contextoVazio();
         }
-        PreferenciaPagamentoAluno p = preferencia.get();
-        boolean automaticoAtivo = p.getStatusAutorizacao() == StatusAutorizacaoPagamento.ATIVA
-                && Boolean.TRUE.equals(p.getPagamentoAutomaticoAutorizado());
-        return new ContextoPagamentoAluno(p.getFormaPreferida(), p.getStatusAutorizacao(), automaticoAtivo,
-                possuiProcessando, possuiPixValido);
+        List<Pagamento> pagamentosSeguros = pagamentos == null ? List.of() : pagamentos;
+        boolean possuiProcessando = pagamentosSeguros.stream().anyMatch(p -> p.getStatus() == StatusPagamento.PROCESSANDO);
+        boolean possuiPixValido = pagamentosSeguros.stream().anyMatch(this::pixPendenteValido);
+        boolean possuiBoletoValido = pagamentosSeguros.stream().anyMatch(this::boletoPendenteValido);
+
+        if (preferencia == null) {
+            return new ContextoPagamentoAluno(null, null, false, possuiProcessando, possuiPixValido, possuiBoletoValido);
+        }
+        boolean automaticoAtivo = preferencia.getStatusAutorizacao() == StatusAutorizacaoPagamento.ATIVA
+                && Boolean.TRUE.equals(preferencia.getPagamentoAutomaticoAutorizado());
+        return new ContextoPagamentoAluno(preferencia.getFormaPreferida(), preferencia.getStatusAutorizacao(), automaticoAtivo,
+                possuiProcessando, possuiPixValido, possuiBoletoValido);
     }
 
     private PreferenciaPagamentoAluno novaPreferencia(Aluno aluno, Usuario usuario) {
@@ -184,6 +193,15 @@ public class PreferenciaPagamentoAlunoService {
     private boolean pixPendenteValido(Pagamento pagamento) {
         return pagamento.getStatus() == StatusPagamento.PENDENTE
                 && pagamento.getMetodo() == MetodoPagamento.PIX
+                && pagamento.getDataExpiracao() != null
+                && pagamento.getDataExpiracao().isAfter(LocalDateTime.now(clock))
+                && pagamento.getIdPagamentoExterno() != null
+                && !pagamento.getIdPagamentoExterno().isBlank();
+    }
+
+    private boolean boletoPendenteValido(Pagamento pagamento) {
+        return pagamento.getStatus() == StatusPagamento.PENDENTE
+                && pagamento.getMetodo() == MetodoPagamento.BOLETO
                 && pagamento.getDataExpiracao() != null
                 && pagamento.getDataExpiracao().isAfter(LocalDateTime.now(clock))
                 && pagamento.getIdPagamentoExterno() != null

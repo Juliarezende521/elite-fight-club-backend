@@ -2,6 +2,7 @@ package Tic.Implementacao.service;
 
 import Tic.Implementacao.dto.notificacao.financeiro.NotificacaoFinanceiraRelatorioResponse;
 import Tic.Implementacao.dto.notificacao.financeiro.ResultadoAutomacaoNotificacaoFinanceiraResponse;
+import Tic.Implementacao.dto.financeiro.preferencia.ContextoPagamentoAluno;
 import Tic.Implementacao.model.*;
 import Tic.Implementacao.repository.*;
 import Tic.Implementacao.security.PermissaoService;
@@ -66,6 +67,9 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         pix.setIdPagamentoExterno("pay_1");
         pix.setDataExpiracao(LocalDateTime.now(CLOCK).plusHours(2));
         preparar(fx, List.of(fatura), List.of(pix), List.of(fx.usuarioAluno));
+        when(fx.preferenciaPagamentoAlunoService.obterContextoPagamento(fatura))
+                .thenReturn(new ContextoPagamentoAluno(FormaPagamentoPreferida.PIX, StatusAutorizacaoPagamento.NAO_SOLICITADA,
+                        false, false, true));
         when(fx.notificacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         fx.service.gerarLembretesDeVencimento(HOJE);
@@ -81,6 +85,9 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         Fatura fatura = fatura(fx, 101L, StatusFatura.PENDENTE, HOJE, "200");
         Pagamento processando = pagamento(fx, fatura, 1L, StatusPagamento.PROCESSANDO, "200");
         preparar(fx, List.of(fatura), List.of(processando), List.of(fx.usuarioAluno));
+        when(fx.preferenciaPagamentoAlunoService.obterContextoPagamento(fatura))
+                .thenReturn(new ContextoPagamentoAluno(FormaPagamentoPreferida.PIX_AUTOMATICO, StatusAutorizacaoPagamento.ATIVA,
+                        true, true, false));
         when(fx.notificacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         fx.service.gerarLembretesDeVencimento(HOJE);
@@ -181,6 +188,10 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         when(fx.faturaRepository.findComAlunoByAcademiaIdAndDataVencimento(1L, vencimento)).thenReturn(faturas);
         when(fx.pagamentoRepository.findMensalidadesComFaturaPorFaturas(eq(1L), anyList())).thenReturn(pagamentos);
         when(fx.usuarioRepository.findByAcademiaIdAndAlunoIdIn(eq(1L), anyList())).thenReturn(usuarios);
+        for (Fatura fatura : faturas) {
+            when(fx.preferenciaPagamentoAlunoService.obterContextoPagamento(fatura))
+                    .thenReturn(new ContextoPagamentoAluno(null, null, false, false, false));
+        }
     }
 
     private Fixture fixture() {
@@ -189,6 +200,7 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         NotificacaoRepository notificacaoRepository = mock(NotificacaoRepository.class);
         UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
+        PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService = mock(PreferenciaPagamentoAlunoService.class);
         Academia academia = new Academia();
         academia.setId(1L);
         academia.setNome("Elite");
@@ -209,9 +221,10 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
         usuario.setAcademia(academia);
         usuario.setAluno(aluno);
         NotificacaoFinanceiraAutomacaoService service = new NotificacaoFinanceiraAutomacaoService(
-                faturaRepository, pagamentoRepository, notificacaoRepository, usuarioRepository, permissaoService, CLOCK);
+                faturaRepository, pagamentoRepository, notificacaoRepository, usuarioRepository,
+                preferenciaPagamentoAlunoService, permissaoService, CLOCK);
         return new Fixture(service, faturaRepository, pagamentoRepository, notificacaoRepository, usuarioRepository,
-                permissaoService, academia, aluno, usuario);
+                preferenciaPagamentoAlunoService, permissaoService, academia, aluno, usuario);
     }
 
     private Fatura fatura(Fixture fx, Long id, StatusFatura status, LocalDate vencimento, String valor) {
@@ -257,6 +270,7 @@ class NotificacaoFinanceiraAutomacaoServiceTest {
                            PagamentoRepository pagamentoRepository,
                            NotificacaoRepository notificacaoRepository,
                            UsuarioRepository usuarioRepository,
+                           PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService,
                            PermissaoService permissaoService,
                            Academia academia,
                            Aluno aluno,

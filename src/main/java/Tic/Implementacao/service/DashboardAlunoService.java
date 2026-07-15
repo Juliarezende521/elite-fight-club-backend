@@ -1,6 +1,7 @@
 package Tic.Implementacao.service;
 
 import Tic.Implementacao.dto.dashboard.aluno.*;
+import Tic.Implementacao.dto.financeiro.preferencia.ResumoPreferenciaPagamentoResponse;
 import Tic.Implementacao.dto.graduacao.ElegibilidadeGraduacaoResponse;
 import Tic.Implementacao.model.*;
 import Tic.Implementacao.repository.*;
@@ -34,6 +35,7 @@ public class DashboardAlunoService {
     private final EvolucaoPesoService evolucaoPesoService;
     private final MetaPesoService metaPesoService;
     private final AvaliacaoCorporalService avaliacaoCorporalService;
+    private final PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService;
     private final PermissaoService permissaoService;
     private final Clock clock;
 
@@ -51,6 +53,7 @@ public class DashboardAlunoService {
                                  EvolucaoPesoService evolucaoPesoService,
                                  MetaPesoService metaPesoService,
                                  AvaliacaoCorporalService avaliacaoCorporalService,
+                                 PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService,
                                  PermissaoService permissaoService,
                                  Clock clock) {
         this.alunoRepository = alunoRepository;
@@ -67,6 +70,7 @@ public class DashboardAlunoService {
         this.evolucaoPesoService = evolucaoPesoService;
         this.metaPesoService = metaPesoService;
         this.avaliacaoCorporalService = avaliacaoCorporalService;
+        this.preferenciaPagamentoAlunoService = preferenciaPagamentoAlunoService;
         this.permissaoService = permissaoService;
         this.clock = clock;
     }
@@ -99,6 +103,7 @@ public class DashboardAlunoService {
         ResumoPrajiedResponse prajied = montarPrajied(academiaId, aluno, checkIns.getTotal());
         ResumoPlanoAlunoResponse plano = montarPlano(academiaId, aluno, inicioSemana, fimSemana);
         ResumoFinanceiroAlunoResponse financeiro = montarFinanceiro(academiaId, aluno, hoje);
+        ResumoPreferenciaPagamentoResponse preferenciaPagamento = preferenciaPagamentoAlunoService.resumoDashboard(academiaId, aluno.getId());
         ResumoPesoDashboardResponse evolucaoPeso = evolucaoPesoService.buscarResumoDashboard(aluno.getId());
         ProgressoMetaPesoDashboardResponse metaPeso = metaPesoService.buscarResumoDashboard(aluno.getId());
         ResumoAvaliacaoCorporalDashboardResponse avaliacaoCorporal = avaliacaoCorporalService.buscarResumoDashboard(aluno.getId());
@@ -111,7 +116,8 @@ public class DashboardAlunoService {
         List<HorarioPersonalAlunoResponse> horariosPersonal = montarHorariosPersonal(academiaId, aluno);
 
         return new DashboardAlunoResponse(aluno.getId(), aluno.getNome(), aluno.getAtivo(), prajied, checkIns, plano,
-                financeiro, evolucaoPeso, metaPeso, avaliacaoCorporal, proxima, aulasHoje, aulasSemana, horariosPersonal);
+                financeiro, evolucaoPeso, preferenciaPagamento, metaPeso, avaliacaoCorporal, proxima, aulasHoje,
+                aulasSemana, horariosPersonal);
     }
 
     private ResumoCheckInResponse montarCheckIns(Long academiaId, Aluno aluno, LocalDate hoje, LocalDate inicioSemana, LocalDate fimSemana) {

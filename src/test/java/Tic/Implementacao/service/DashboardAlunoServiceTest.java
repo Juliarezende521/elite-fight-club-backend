@@ -4,6 +4,7 @@ import Tic.Implementacao.dto.dashboard.aluno.DashboardAlunoResponse;
 import Tic.Implementacao.dto.dashboard.aluno.ProgressoMetaPesoDashboardResponse;
 import Tic.Implementacao.dto.dashboard.aluno.ResumoAvaliacaoCorporalDashboardResponse;
 import Tic.Implementacao.dto.dashboard.aluno.ResumoPesoDashboardResponse;
+import Tic.Implementacao.dto.financeiro.preferencia.ResumoPreferenciaPagamentoResponse;
 import Tic.Implementacao.dto.graduacao.ElegibilidadeGraduacaoResponse;
 import Tic.Implementacao.model.*;
 import Tic.Implementacao.repository.*;
@@ -97,6 +98,19 @@ class DashboardAlunoServiceTest {
 
         Fixture semAvaliacao = fixture(PerfilUsuario.ALUNO, TipoPlano.TURMA);
         assertNull(semAvaliacao.service.buscarDashboardDoAlunoAtual().getAvaliacaoCorporal());
+    }
+
+    @Test
+    void dashboardIncluiPreferenciaPagamentoQuandoConfigurada() {
+        Fixture fx = fixture(PerfilUsuario.ALUNO, TipoPlano.TURMA);
+        ResumoPreferenciaPagamentoResponse preferencia = new ResumoPreferenciaPagamentoResponse(
+                "PIX_AUTOMATICO", "PENDENTE", false, null);
+        when(fx.preferenciaPagamentoAlunoService.resumoDashboard(1L, 20L)).thenReturn(preferencia);
+
+        DashboardAlunoResponse response = fx.service.buscarDashboardDoAlunoAtual();
+
+        assertEquals("PIX_AUTOMATICO", response.getPreferenciaPagamento().getFormaPreferida());
+        assertEquals("PENDENTE", response.getPreferenciaPagamento().getStatusAutorizacao());
     }
 
     @Test
@@ -275,6 +289,7 @@ class DashboardAlunoServiceTest {
         EvolucaoPesoService evolucaoPesoService = mock(EvolucaoPesoService.class);
         MetaPesoService metaPesoService = mock(MetaPesoService.class);
         AvaliacaoCorporalService avaliacaoCorporalService = mock(AvaliacaoCorporalService.class);
+        PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService = mock(PreferenciaPagamentoAlunoService.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
         Clock clock = Clock.fixed(HOJE.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
@@ -300,15 +315,17 @@ class DashboardAlunoServiceTest {
         when(evolucaoPesoService.buscarResumoDashboard(20L)).thenReturn(null);
         when(metaPesoService.buscarResumoDashboard(20L)).thenReturn(null);
         when(avaliacaoCorporalService.buscarResumoDashboard(20L)).thenReturn(null);
+        when(preferenciaPagamentoAlunoService.resumoDashboard(1L, 20L)).thenReturn(null);
 
         DashboardAlunoService service = new DashboardAlunoService(alunoRepository, graduacaoRepository, checkInRepository,
                 reservaRepository, aulaPersonalRepository, agendaPersonalRepository, faturaRepository, pagamentoRepository,
                 sessaoCheckInRepository, presencaAulaRepository, graduacaoAlunoService, evolucaoPesoService,
-                metaPesoService, avaliacaoCorporalService, permissaoService, clock);
+                metaPesoService, avaliacaoCorporalService, preferenciaPagamentoAlunoService, permissaoService, clock);
         return new Fixture(service, alunoRepository, graduacaoRepository, checkInRepository, reservaRepository,
                 aulaPersonalRepository, agendaPersonalRepository, faturaRepository, pagamentoRepository,
                 sessaoCheckInRepository, presencaAulaRepository, graduacaoAlunoService, evolucaoPesoService,
-                metaPesoService, avaliacaoCorporalService, permissaoService, academia, aluno, atual, proxima, usuario);
+                metaPesoService, avaliacaoCorporalService, preferenciaPagamentoAlunoService, permissaoService,
+                academia, aluno, atual, proxima, usuario);
     }
 
     private Academia academia() {
@@ -482,6 +499,7 @@ class DashboardAlunoServiceTest {
                            EvolucaoPesoService evolucaoPesoService,
                            MetaPesoService metaPesoService,
                            AvaliacaoCorporalService avaliacaoCorporalService,
+                           PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService,
                            PermissaoService permissaoService,
                            Academia academia,
                            Aluno aluno,

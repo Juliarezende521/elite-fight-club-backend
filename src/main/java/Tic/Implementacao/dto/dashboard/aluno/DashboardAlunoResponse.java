@@ -1,5 +1,7 @@
 package Tic.Implementacao.dto.dashboard.aluno;
 
+import Tic.Implementacao.dto.financeiro.preferencia.ResumoPreferenciaPagamentoResponse;
+
 import java.util.List;
 
 public class DashboardAlunoResponse {
@@ -10,6 +12,7 @@ public class DashboardAlunoResponse {
     private ResumoCheckInResponse checkIns;
     private ResumoPlanoAlunoResponse plano;
     private ResumoFinanceiroAlunoResponse financeiro;
+    private ResumoPreferenciaPagamentoResponse preferenciaPagamento;
     private ResumoPesoDashboardResponse evolucaoPeso;
     private ProgressoMetaPesoDashboardResponse metaPeso;
     private ResumoAvaliacaoCorporalDashboardResponse avaliacaoCorporal;
@@ -21,6 +24,7 @@ public class DashboardAlunoResponse {
     public DashboardAlunoResponse(Long alunoId, String nome, Boolean ativo, ResumoPrajiedResponse prajied,
                                   ResumoCheckInResponse checkIns, ResumoPlanoAlunoResponse plano,
                                   ResumoFinanceiroAlunoResponse financeiro, ResumoPesoDashboardResponse evolucaoPeso,
+                                  ResumoPreferenciaPagamentoResponse preferenciaPagamento,
                                   ProgressoMetaPesoDashboardResponse metaPeso,
                                   ResumoAvaliacaoCorporalDashboardResponse avaliacaoCorporal,
                                   ProximaAulaAlunoResponse proximaAula,
@@ -33,6 +37,7 @@ public class DashboardAlunoResponse {
         this.checkIns = checkIns;
         this.plano = plano;
         this.financeiro = financeiro;
+        this.preferenciaPagamento = preferenciaPagamento;
         this.evolucaoPeso = evolucaoPeso;
         this.metaPeso = metaPeso;
         this.avaliacaoCorporal = avaliacaoCorporal;
@@ -49,6 +54,7 @@ public class DashboardAlunoResponse {
     public ResumoCheckInResponse getCheckIns() { return checkIns; }
     public ResumoPlanoAlunoResponse getPlano() { return plano; }
     public ResumoFinanceiroAlunoResponse getFinanceiro() { return financeiro; }
+    public ResumoPreferenciaPagamentoResponse getPreferenciaPagamento() { return preferenciaPagamento; }
     public ResumoPesoDashboardResponse getEvolucaoPeso() { return evolucaoPeso; }
     public ProgressoMetaPesoDashboardResponse getMetaPeso() { return metaPeso; }
     public ResumoAvaliacaoCorporalDashboardResponse getAvaliacaoCorporal() { return avaliacaoCorporal; }

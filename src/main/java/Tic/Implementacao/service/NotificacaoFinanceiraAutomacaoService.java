@@ -2,6 +2,7 @@ package Tic.Implementacao.service;
 
 import Tic.Implementacao.dto.notificacao.financeiro.NotificacaoFinanceiraRelatorioResponse;
 import Tic.Implementacao.dto.notificacao.financeiro.ResultadoAutomacaoNotificacaoFinanceiraResponse;
+import Tic.Implementacao.dto.financeiro.preferencia.ContextoPagamentoAluno;
 import Tic.Implementacao.model.*;
 import Tic.Implementacao.repository.*;
 import Tic.Implementacao.security.PermissaoService;
@@ -28,6 +29,7 @@ public class NotificacaoFinanceiraAutomacaoService {
     private final PagamentoRepository pagamentoRepository;
     private final NotificacaoRepository notificacaoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService;
     private final PermissaoService permissaoService;
     private final Clock clock;
 
@@ -35,12 +37,14 @@ public class NotificacaoFinanceiraAutomacaoService {
                                                 PagamentoRepository pagamentoRepository,
                                                 NotificacaoRepository notificacaoRepository,
                                                 UsuarioRepository usuarioRepository,
+                                                PreferenciaPagamentoAlunoService preferenciaPagamentoAlunoService,
                                                 PermissaoService permissaoService,
                                                 Clock clock) {
         this.faturaRepository = faturaRepository;
         this.pagamentoRepository = pagamentoRepository;
         this.notificacaoRepository = notificacaoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.preferenciaPagamentoAlunoService = preferenciaPagamentoAlunoService;
         this.permissaoService = permissaoService;
         this.clock = clock;
     }
@@ -159,16 +163,18 @@ public class NotificacaoFinanceiraAutomacaoService {
             resultado.falha(Motivo.USUARIO_NAO_VINCULADO);
             return;
         }
-        if (possuiPagamentoProcessando(pagamentos)) {
+        ContextoPagamentoAluno contexto = preferenciaPagamentoAlunoService.obterContextoPagamento(fatura);
+        if (Boolean.TRUE.equals(contexto.getPossuiPagamentoProcessando())) {
             criarOuContar(fatura, usuario.get(), TipoNotificacao.PAGAMENTO_MENSALIDADE_PROCESSANDO,
                     "Pagamento em processamento",
                     "Seu pagamento está sendo processado. Aguarde a confirmação antes de iniciar outra tentativa.",
                     "PAGAMENTO_MENSALIDADE_PROCESSANDO:" + fatura.getId() + ":" + StatusPagamento.PROCESSANDO.name(), resultado);
             return;
         }
-        String mensagem = pixPendenteValido(pagamentos)
+        String mensagem = Boolean.TRUE.equals(contexto.getPossuiPixValido())
                 ? "Sua mensalidade vence hoje. Há um Pix disponível na área financeira."
                 : "Sua mensalidade vence hoje. Acesse a área financeira para consultar as formas de pagamento.";
+        mensagem += complementoPreferencia(contexto);
         if (saldo.compareTo(fatura.getValor()) < 0) {
             mensagem += " " + mensagemSaldo(saldo);
         }
@@ -186,7 +192,8 @@ public class NotificacaoFinanceiraAutomacaoService {
             resultado.ignorada(motivo);
             return;
         }
-        if (possuiPagamentoProcessando(pagamentos)) {
+        ContextoPagamentoAluno contexto = preferenciaPagamentoAlunoService.obterContextoPagamento(fatura);
+        if (Boolean.TRUE.equals(contexto.getPossuiPagamentoProcessando())) {
             resultado.ignorada(Motivo.PAGAMENTO_PROCESSANDO);
             return;
         }
@@ -198,7 +205,8 @@ public class NotificacaoFinanceiraAutomacaoService {
         String mensagem = "Identificamos que sua mensalidade com vencimento em "
                 + fatura.getDataVencimento().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                 + " ainda possui saldo em aberto. Consulte a área financeira para regularizar. "
-                + mensagemSaldo(saldo);
+                + mensagemSaldo(saldo)
+                + complementoPreferencia(contexto);
         criarOuContar(fatura, usuario.get(), TipoNotificacao.MENSALIDADE_ATRASADA,
                 "Mensalidade em atraso", mensagem,
                 "MENSALIDADE_ATRASADA:" + fatura.getId() + ":" + dataReferencia, resultado);
@@ -275,18 +283,19 @@ public class NotificacaoFinanceiraAutomacaoService {
                 .filter(u -> u.getPerfil() == PerfilUsuario.ALUNO);
     }
 
-    private boolean possuiPagamentoProcessando(List<Pagamento> pagamentos) {
-        return pagamentos.stream().anyMatch(p -> p.getStatus() == StatusPagamento.PROCESSANDO);
-    }
-
-    private boolean pixPendenteValido(List<Pagamento> pagamentos) {
-        LocalDateTime agora = LocalDateTime.now(clock);
-        return pagamentos.stream().anyMatch(p -> p.getStatus() == StatusPagamento.PENDENTE
-                && p.getMetodo() == MetodoPagamento.PIX
-                && p.getDataExpiracao() != null
-                && p.getDataExpiracao().isAfter(agora)
-                && p.getIdPagamentoExterno() != null
-                && !p.getIdPagamentoExterno().isBlank());
+    private String complementoPreferencia(ContextoPagamentoAluno contexto) {
+        if (contexto == null || contexto.getFormaPreferida() == null) {
+            return "";
+        }
+        if (contexto.getFormaPreferida() == FormaPagamentoPreferida.PIX_AUTOMATICO
+                && !Boolean.TRUE.equals(contexto.getPagamentoAutomaticoAtivo())) {
+            return " A autorização do Pix Automático ainda não está ativa.";
+        }
+        if (contexto.getFormaPreferida() == FormaPagamentoPreferida.CARTAO
+                && contexto.getStatusAutorizacao() != StatusAutorizacaoPagamento.ATIVA) {
+            return " O cartão ainda não possui autorização ativa no sistema.";
+        }
+        return "";
     }
 
     private BigDecimal saldo(Fatura fatura, List<Pagamento> pagamentos) {

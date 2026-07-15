@@ -1,0 +1,10 @@
+package Tic.Implementacao.model;
+
+public enum MotivoAlteracaoGraduacao {
+    APROVACAO_AVALIACAO,
+    AJUSTE_ADMINISTRATIVO,
+    TRANSFERENCIA_OUTRA_ACADEMIA,
+    CORRECAO_CADASTRAL,
+    REBAIXAMENTO,
+    CADASTRO_INICIAL
+}

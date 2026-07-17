@@ -7,7 +7,9 @@ import Tic.Implementacao.model.PerfilUsuario;
 import Tic.Implementacao.model.Professor;
 import Tic.Implementacao.model.StatusAcademia;
 import Tic.Implementacao.model.Usuario;
+import Tic.Implementacao.repository.UsuarioRepository;
 import Tic.Implementacao.service.UsuarioService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,16 +17,18 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AuthControllerTest {
 
     @Test
     void deveRetornarUsuarioAutenticadoComVinculos() {
-        AuthController controller = new AuthController(mock(UsuarioService.class));
+        AuthController controller = new AuthController(mock(UsuarioService.class), mock(UsuarioRepository.class));
         Usuario usuario = usuarioAutenticado();
 
         ResponseEntity<AuthenticatedUserResponse> response = controller.usuarioLogado(
-                new UsernamePasswordAuthenticationToken(usuario, null)
+                new UsernamePasswordAuthenticationToken(usuario, null),
+                mock(HttpServletRequest.class)
         );
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -43,11 +47,28 @@ class AuthControllerTest {
 
     @Test
     void deveRetornarNaoAutorizadoSemPrincipalUsuario() {
-        AuthController controller = new AuthController(mock(UsuarioService.class));
+        AuthController controller = new AuthController(mock(UsuarioService.class), mock(UsuarioRepository.class));
+        HttpServletRequest request = mock(HttpServletRequest.class);
 
-        ResponseEntity<AuthenticatedUserResponse> response = controller.usuarioLogado(null);
+        ResponseEntity<AuthenticatedUserResponse> response = controller.usuarioLogado(null, request);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    void deveRetornarUsuarioInativoQuandoPrincipalValido() {
+        AuthController controller = new AuthController(mock(UsuarioService.class), mock(UsuarioRepository.class));
+        Usuario usuario = usuarioAutenticado();
+        usuario.setAtivo(false);
+
+        ResponseEntity<AuthenticatedUserResponse> response = controller.usuarioLogado(
+                new UsernamePasswordAuthenticationToken(usuario, null),
+                mock(HttpServletRequest.class)
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().getAtivo());
     }
 
     private Usuario usuarioAutenticado() {

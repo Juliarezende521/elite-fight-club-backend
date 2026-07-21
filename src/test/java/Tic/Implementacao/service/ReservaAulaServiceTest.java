@@ -59,6 +59,17 @@ class ReservaAulaServiceTest {
     }
 
     @Test
+    void naoDeveReservarModalidadeNaoContratada() {
+        Fixture fx = fixture(DATA_AULA.atTime(18, 0));
+        fx.aluno.getModalidades().clear();
+
+        RuntimeException erro = assertThrows(RuntimeException.class, () -> fx.service.reservarMinhaVaga(10L));
+
+        assertEquals("Esta modalidade não está incluída no plano do aluno.", erro.getMessage());
+        verify(fx.reservaRepository, never()).save(any());
+    }
+
+    @Test
     void naoDeveReservarComPlanoInativo() {
         Fixture fx = fixture(DATA_AULA.atTime(18, 0));
         fx.aluno.getPlano().setAtivo(false);
@@ -222,6 +233,7 @@ class ReservaAulaServiceTest {
         aluno.setAcademia(academia);
         aluno.setQuantidadeCheckins(0);
         aluno.setPlano(plano(academia));
+        aluno.setModalidades(new java.util.ArrayList<>(List.of(modalidade(100L, academia))));
         return aluno;
     }
 
@@ -245,12 +257,22 @@ class ReservaAulaServiceTest {
         aula.setId(10L);
         aula.setAcademia(academia);
         aula.setProfessor(professor);
+        aula.setModalidade(modalidade(100L, academia));
         aula.setData(DATA_AULA);
         aula.setHoraInicio(LocalTime.of(19, 0));
         aula.setHoraFim(LocalTime.of(20, 0));
         aula.setCapacidadeMaxima(15);
         aula.setStatus(StatusAula.AGENDADA);
         return aula;
+    }
+
+    private Modalidade modalidade(Long id, Academia academia) {
+        Modalidade modalidade = new Modalidade();
+        modalidade.setId(id);
+        modalidade.setNome("Jiu-Jitsu");
+        modalidade.setAcademia(academia);
+        modalidade.setAtiva(true);
+        return modalidade;
     }
 
     private Usuario usuario(Aluno aluno, Academia academia) {

@@ -113,7 +113,7 @@ class AgendaServiceTest {
         when(permissaoService.academiaAtualId()).thenReturn(1L);
         when(permissaoService.academiaAtual()).thenReturn(academia);
         when(professorRepository.findByIdAndAcademiaId(10L, 1L)).thenReturn(Optional.of(professor));
-        when(modalidadeRepository.findById(20L)).thenReturn(Optional.of(modalidade));
+        when(modalidadeRepository.findByIdAndAcademiaId(20L, 1L)).thenReturn(Optional.of(modalidade));
         when(alunoRepository.findByIdAndAcademiaId(30L, 1L)).thenReturn(Optional.of(aluno));
 
         AgendaService service = new AgendaService(horarioTurmaRepository, agendaPersonalRepository,
@@ -188,6 +188,7 @@ class AgendaServiceTest {
         Modalidade modalidade = new Modalidade();
         modalidade.setId(20L);
         modalidade.setNome("Muay Thai");
+        modalidade.setAcademia(academia());
         return modalidade;
     }
 

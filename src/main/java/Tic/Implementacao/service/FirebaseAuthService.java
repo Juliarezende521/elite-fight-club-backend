@@ -37,6 +37,21 @@ public class FirebaseAuthService {
         }
     }
 
+    public void atualizarUsuario(String firebaseUid, String nome, String email) {
+        if (firebaseUid == null || firebaseUid.isBlank()) return;
+        validarFirebaseConfigurado();
+
+        UserRecord.UpdateRequest request = new UserRecord.UpdateRequest(firebaseUid)
+                .setDisplayName(nome)
+                .setEmail(email);
+
+        try {
+            FirebaseAuth.getInstance().updateUser(request);
+        } catch (FirebaseAuthException e) {
+            throw new RuntimeException("Erro ao atualizar usuário no Firebase: " + e.getMessage(), e);
+        }
+    }
+
     private void validarFirebaseConfigurado() {
         if (FirebaseApp.getApps().isEmpty()) {
             throw new RuntimeException("Firebase Admin não configurado. Defina firebase.credentials.path.");

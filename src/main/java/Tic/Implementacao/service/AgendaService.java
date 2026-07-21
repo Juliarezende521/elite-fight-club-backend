@@ -46,7 +46,7 @@ public class AgendaService {
         validarIntervalo(request.getHoraInicial(), request.getHoraFinal());
         Long academiaId = permissaoService.academiaAtualId();
         Professor professor = buscarProfessor(request.getProfessorId(), academiaId);
-        Modalidade modalidade = modalidadeRepository.findById(request.getModalidadeId())
+        Modalidade modalidade = modalidadeRepository.findByIdAndAcademiaId(request.getModalidadeId(), academiaId)
                 .orElseThrow(() -> new RuntimeException("Modalidade não encontrada com ID: " + request.getModalidadeId()));
 
         validarConflito(professor.getId(), request.getDiaSemana(), request.getHoraInicial(), request.getHoraFinal(), null, null);
@@ -126,7 +126,7 @@ public class AgendaService {
         HorarioTurma horario = horarioTurmaRepository.findByIdAndAcademiaId(id, academiaId)
                 .orElseThrow(() -> new RuntimeException("Horário de turma não encontrado com ID: " + id));
         Professor professor = buscarProfessor(request.getProfessorId(), academiaId);
-        Modalidade modalidade = modalidadeRepository.findById(request.getModalidadeId())
+        Modalidade modalidade = modalidadeRepository.findByIdAndAcademiaId(request.getModalidadeId(), academiaId)
                 .orElseThrow(() -> new RuntimeException("Modalidade não encontrada com ID: " + request.getModalidadeId()));
 
         validarConflito(professor.getId(), request.getDiaSemana(), request.getHoraInicial(), request.getHoraFinal(), id, null);

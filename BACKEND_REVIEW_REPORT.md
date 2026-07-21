@@ -179,6 +179,47 @@ Beneficio:
 - Teste manual mais facil.
 - Possibilidade de gerar tipos TypeScript.
 
+### 11. Ampliar cadastro completo do aluno
+
+Manter o cadastro simplificado na fase atual de testes e planejar uma etapa futura para dados completos do aluno, sem tornar esses campos obrigatorios agora.
+
+Dados pessoais:
+
+- CPF.
+- Data de nascimento.
+- Telefone/WhatsApp.
+- Foto do aluno.
+
+Endereco:
+
+- CEP.
+- Logradouro.
+- Numero.
+- Complemento.
+- Bairro.
+- Cidade.
+- Estado.
+
+Emergencia e saude:
+
+- Contato de emergencia.
+- Nome e contato do responsavel, quando o aluno for menor de idade.
+- Observacoes medicas.
+- Restricoes, lesoes ou limitacoes para treino.
+
+Documentos e consentimentos:
+
+- Aceite de termos de uso.
+- Aceite de responsabilidade.
+- Aceite de tratamento de dados.
+
+Dados administrativos:
+
+- Data de matricula.
+- Observacoes administrativas.
+
+Essa melhoria deve ser feita em uma fase propria, com banco, DTOs, validacoes e formularios planejados em conjunto.
+
 ## Pontos Bons Encontrados
 
 - Separacao clara entre fatura e pagamento.

@@ -13,7 +13,17 @@ public interface ModalidadeRepository extends JpaRepository<Modalidade, Long> {
 
     List<Modalidade> findByAtivaTrue();
 
+    List<Modalidade> findByAcademiaId(Long academiaId);
+
+    List<Modalidade> findByAcademiaIdAndAtivaTrue(Long academiaId);
+
     List<Modalidade> findByTipoModalidade(TipoModalidade tipoModalidade);
+
+    List<Modalidade> findByAcademiaIdAndTipoModalidade(Long academiaId, TipoModalidade tipoModalidade);
+
+    List<Modalidade> findByIdInAndAcademiaId(List<Long> ids, Long academiaId);
+
+    Optional<Modalidade> findByIdAndAcademiaId(Long id, Long academiaId);
 
     Optional<Modalidade> findByNomeIgnoreCase(String nome);
 }

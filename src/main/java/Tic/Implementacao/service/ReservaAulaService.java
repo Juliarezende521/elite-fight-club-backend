@@ -46,6 +46,7 @@ public class ReservaAulaService {
 
         validarMesmaAcademia(aluno, aula, academiaId);
         validarPlano(aluno);
+        validarModalidadeContratada(aluno, aula);
         validarAulaReservavel(aula);
         validarHorarioReserva(aula);
         validarDuplicidade(academiaId, aulaId, aluno.getId());
@@ -124,6 +125,9 @@ public class ReservaAulaService {
     }
 
     private void validarPlano(Aluno aluno) {
+        if (!Boolean.TRUE.equals(aluno.getAtivo())) {
+            throw new RuntimeException("Aluno está inativo");
+        }
         if (aluno.getTipoAluno() != TipoAluno.TURMA) {
             throw new RuntimeException("Aluno personal não pode reservar vaga em turma por este fluxo");
         }
@@ -139,6 +143,17 @@ public class ReservaAulaService {
         }
         if (plano.getQuantidadeAulasSemana() == null || plano.getQuantidadeAulasSemana() <= 0) {
             throw new RuntimeException("Plano do aluno não possui aulas semanais disponíveis");
+        }
+    }
+
+    private void validarModalidadeContratada(Aluno aluno, AulaTurma aula) {
+        if (aula.getModalidade() == null || aula.getModalidade().getId() == null) {
+            throw new RuntimeException("Aula não possui modalidade vinculada");
+        }
+        boolean contratada = aluno.getModalidades() != null && aluno.getModalidades().stream()
+                .anyMatch(modalidade -> aula.getModalidade().getId().equals(modalidade.getId()));
+        if (!contratada) {
+            throw new RuntimeException("Esta modalidade não está incluída no plano do aluno.");
         }
     }
 

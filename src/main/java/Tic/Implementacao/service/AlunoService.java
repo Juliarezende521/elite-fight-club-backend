@@ -1,8 +1,10 @@
 package Tic.Implementacao.service;
 
 import Tic.Implementacao.model.*;
+import Tic.Implementacao.dto.aluno.AtualizarAlunoRequest;
 import Tic.Implementacao.dto.aluno.CriarAlunoRequest;
 import Tic.Implementacao.repository.AlunoRepository;
+import Tic.Implementacao.repository.ModalidadeRepository;
 import Tic.Implementacao.repository.PlanoRepository;
 import Tic.Implementacao.repository.UsuarioRepository;
 import Tic.Implementacao.security.PermissaoService;
@@ -12,8 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class AlunoService {
@@ -21,6 +26,7 @@ public class AlunoService {
     private final AlunoRepository repo;
     private final UsuarioRepository usuarioRepository;
     private final PlanoRepository planoRepository;
+    private final ModalidadeRepository modalidadeRepository;
     private final FirebaseAuthService firebaseAuthService;
     private final GraduacaoService graduacaoService;
     private final GraduacaoAlunoService graduacaoAlunoService;
@@ -28,13 +34,15 @@ public class AlunoService {
     private final PermissaoService permissaoService;
     private final TransactionTemplate transactionTemplate;
 
-    public AlunoService(AlunoRepository repo, UsuarioRepository usuarioRepository, PlanoRepository planoRepository, FirebaseAuthService firebaseAuthService,
+    public AlunoService(AlunoRepository repo, UsuarioRepository usuarioRepository, PlanoRepository planoRepository,
+                        ModalidadeRepository modalidadeRepository, FirebaseAuthService firebaseAuthService,
                         GraduacaoService graduacaoService, GraduacaoAlunoService graduacaoAlunoService,
                         FaturaService faturaService, PermissaoService permissaoService,
                         PlatformTransactionManager transactionManager){
         this.repo = repo;
         this.usuarioRepository = usuarioRepository;
         this.planoRepository = planoRepository;
+        this.modalidadeRepository = modalidadeRepository;
         this.firebaseAuthService = firebaseAuthService;
         this.graduacaoService = graduacaoService;
         this.graduacaoAlunoService = graduacaoAlunoService;
@@ -61,11 +69,12 @@ public class AlunoService {
     }
 
     public List<Aluno> listarPorModalidade(Long modalidadeId) {
-        return repo.findDistinctByModalidadesId(modalidadeId);
+        return repo.findDistinctByModalidadesIdAndAcademiaId(modalidadeId, permissaoService.academiaAtualId());
     }
 
     public List<Aluno> listarPorTipoModalidade(String tipoModalidade) {
-        return repo.findDistinctByModalidadesTipoModalidade(TipoModalidade.valueOf(tipoModalidade.toUpperCase()));
+        return repo.findDistinctByModalidadesTipoModalidadeAndAcademiaId(
+                TipoModalidade.valueOf(tipoModalidade.toUpperCase()), permissaoService.academiaAtualId());
     }
 
     @Transactional
@@ -136,6 +145,7 @@ public class AlunoService {
                     .orElseThrow(() -> new RuntimeException("Plano não encontrado com ID: " + request.getPlanoId()));
             aluno.setPlano(plano);
         }
+        aluno.setModalidades(buscarModalidadesContratadas(request.getModalidadeIds(), academia, aluno.getPlano()));
 
         aluno = repo.save(aluno);
 
@@ -155,5 +165,100 @@ public class AlunoService {
         faturaService.gerarFaturaMensal(aluno.getId(), YearMonth.now());
 
         return aluno;
+    }
+
+    @Transactional
+    public Aluno atualizarModalidades(Long alunoId, List<Long> modalidadeIds) {
+        permissaoService.exigirAdminOuProfessor();
+        Academia academia = permissaoService.academiaAtual();
+        Aluno aluno = repo.findByIdAndAcademiaId(alunoId, academia.getId())
+                .orElseThrow(() -> new RuntimeException("Aluno não encontrado com ID: " + alunoId));
+
+        aluno.setModalidades(buscarModalidadesContratadas(modalidadeIds, academia, aluno.getPlano()));
+        return repo.save(aluno);
+    }
+
+    @Transactional
+    public Aluno atualizarCadastro(Long alunoId, AtualizarAlunoRequest request) {
+        permissaoService.exigirAdminOuProfessor();
+        Academia academia = permissaoService.academiaAtual();
+        Aluno aluno = repo.findByIdAndAcademiaId(alunoId, academia.getId())
+                .orElseThrow(() -> new RuntimeException("Aluno não encontrado com ID: " + alunoId));
+
+        String emailNormalizado = request.getEmail().trim();
+        if (!emailNormalizado.equalsIgnoreCase(aluno.getEmail())) {
+            repo.findByEmailAndAcademiaId(emailNormalizado, academia.getId())
+                    .filter(outro -> !outro.getId().equals(aluno.getId()))
+                    .ifPresent(outro -> {
+                        throw new RuntimeException("E-mail já cadastrado");
+                    });
+            usuarioRepository.findByEmailAndAcademiaId(emailNormalizado, academia.getId())
+                    .filter(usuario -> usuario.getAluno() == null || !usuario.getAluno().getId().equals(aluno.getId()))
+                    .ifPresent(usuario -> {
+                        throw new RuntimeException("E-mail já cadastrado");
+                    });
+        }
+
+        Plano plano = null;
+        if (request.getPlanoId() != null) {
+            plano = planoRepository.findByIdAndAcademiaId(request.getPlanoId(), academia.getId())
+                    .orElseThrow(() -> new RuntimeException("Plano não encontrado com ID: " + request.getPlanoId()));
+            if (!Boolean.TRUE.equals(plano.getAtivo())) {
+                throw new RuntimeException("Plano inativo não pode ser vinculado ao aluno");
+            }
+        }
+
+        List<Modalidade> modalidades = buscarModalidadesContratadas(request.getModalidadeIds(), academia, plano);
+
+        String nomeNormalizado = request.getNome().trim();
+        boolean deveAtualizarFirebase = aluno.getFirebaseUid() != null
+                && !aluno.getFirebaseUid().isBlank()
+                && (!nomeNormalizado.equals(aluno.getNome())
+                || !emailNormalizado.equalsIgnoreCase(aluno.getEmail()));
+
+        if (deveAtualizarFirebase) {
+            firebaseAuthService.atualizarUsuario(aluno.getFirebaseUid(), nomeNormalizado, emailNormalizado);
+        }
+
+        aluno.setNome(nomeNormalizado);
+        aluno.setEmail(emailNormalizado);
+        aluno.setTipoAluno(request.getTipoAluno());
+        aluno.setValorMensalidade(request.getValorMensalidade());
+        aluno.setDiaVencimento(request.getDiaVencimento());
+        aluno.setPlano(plano);
+        aluno.setAtivo(request.getAtivo());
+        aluno.setModalidades(modalidades);
+
+        usuarioRepository.findByAlunoIdAndAcademiaId(aluno.getId(), academia.getId())
+                .ifPresent(usuario -> {
+                    usuario.setNome(aluno.getNome());
+                    usuario.setEmail(aluno.getEmail());
+                    usuario.setAtivo(aluno.getAtivo());
+                    usuarioRepository.save(usuario);
+                });
+
+        return repo.save(aluno);
+    }
+
+    private List<Modalidade> buscarModalidadesContratadas(List<Long> modalidadeIds, Academia academia, Plano plano) {
+        if (plano != null && plano.getTipo() == TipoPlano.TURMA
+                && (modalidadeIds == null || modalidadeIds.isEmpty())) {
+            throw new RuntimeException("Informe ao menos uma modalidade para plano de turma");
+        }
+        if (modalidadeIds == null || modalidadeIds.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Long> idsUnicos = new LinkedHashSet<>(modalidadeIds);
+        List<Modalidade> modalidades = modalidadeRepository.findByIdInAndAcademiaId(new ArrayList<>(idsUnicos), academia.getId());
+        if (modalidades.size() != idsUnicos.size()) {
+            throw new RuntimeException("Uma ou mais modalidades não pertencem à academia atual");
+        }
+        modalidades.forEach(modalidade -> {
+            if (!modalidade.isAtiva()) {
+                throw new RuntimeException("Modalidade inativa não pode ser vinculada ao aluno");
+            }
+        });
+        return modalidades;
     }
 }

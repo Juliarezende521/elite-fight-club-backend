@@ -26,6 +26,10 @@ public class Modalidade {
     @Column(nullable = false)
     private boolean ativa = true;
 
+    @ManyToOne
+    @JoinColumn(name = "academia_id", nullable = false)
+    private Academia academia;
+
     @NotNull(message = "Tipo da modalidade é obrigatório")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -88,6 +92,14 @@ public class Modalidade {
 
     public void setAtiva(boolean ativa) {
         this.ativa = ativa;
+    }
+
+    public Academia getAcademia() {
+        return academia;
+    }
+
+    public void setAcademia(Academia academia) {
+        this.academia = academia;
     }
 
     public TipoModalidade getTipoModalidade() {

@@ -14,9 +14,9 @@ import java.util.Optional;
 
 public interface AlunoRepository extends JpaRepository<Aluno, Long> {
 
-    List<Aluno> findDistinctByModalidadesId(Long modalidadeId);
+    List<Aluno> findDistinctByModalidadesIdAndAcademiaId(Long modalidadeId, Long academiaId);
 
-    List<Aluno> findDistinctByModalidadesTipoModalidade(TipoModalidade tipoModalidade);
+    List<Aluno> findDistinctByModalidadesTipoModalidadeAndAcademiaId(TipoModalidade tipoModalidade, Long academiaId);
 
     boolean existsByEmail(String email);
 
@@ -29,6 +29,8 @@ public interface AlunoRepository extends JpaRepository<Aluno, Long> {
     List<Aluno> findAllByAcademiaId(Long academiaId);
 
     Optional<Aluno> findByIdAndAcademiaId(Long id, Long academiaId);
+
+    Optional<Aluno> findByEmailAndAcademiaId(String email, Long academiaId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from Aluno a where a.id = :id and a.academia.id = :academiaId")

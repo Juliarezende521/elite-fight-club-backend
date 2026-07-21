@@ -2,6 +2,8 @@ package Tic.Implementacao.controller;
 
 
 import Tic.Implementacao.dto.aluno.CriarAlunoRequest;
+import Tic.Implementacao.dto.aluno.AtualizarAlunoRequest;
+import Tic.Implementacao.dto.aluno.AtualizarModalidadesAlunoRequest;
 import Tic.Implementacao.dto.graduacao.AlterarGraduacaoAlunoRequest;
 import Tic.Implementacao.dto.graduacao.HistoricoGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.PromoverGraduacaoAlunoRequest;
@@ -114,6 +116,18 @@ public class AlunoController {
         }
         return ResponseEntity.notFound().build();
 
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Aluno> atualizarCadastro(@PathVariable Long id,
+                                                   @Valid @RequestBody AtualizarAlunoRequest request) {
+        return ResponseEntity.ok(service.atualizarCadastro(id, request));
+    }
+
+    @PutMapping("/{id}/modalidades")
+    public ResponseEntity<Aluno> atualizarModalidades(@PathVariable Long id,
+                                                       @Valid @RequestBody AtualizarModalidadesAlunoRequest request) {
+        return ResponseEntity.ok(service.atualizarModalidades(id, request.getModalidadeIds()));
     }
 
     @PostMapping("/{alunoId}/graduacao")

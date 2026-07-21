@@ -4,6 +4,8 @@ import Tic.Implementacao.model.TipoAluno;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CriarAlunoRequest {
 
@@ -33,6 +35,8 @@ public class CriarAlunoRequest {
 
     private Long planoId;
 
+    private List<Long> modalidadeIds = new ArrayList<>();
+
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getEmail() { return email; }
@@ -47,4 +51,6 @@ public class CriarAlunoRequest {
     public void setDiaVencimento(Integer diaVencimento) { this.diaVencimento = diaVencimento; }
     public Long getPlanoId() { return planoId; }
     public void setPlanoId(Long planoId) { this.planoId = planoId; }
+    public List<Long> getModalidadeIds() { return modalidadeIds; }
+    public void setModalidadeIds(List<Long> modalidadeIds) { this.modalidadeIds = modalidadeIds; }
 }

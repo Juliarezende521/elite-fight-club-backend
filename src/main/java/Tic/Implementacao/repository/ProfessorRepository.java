@@ -9,4 +9,5 @@ import java.util.List;
 public interface ProfessorRepository extends JpaRepository<Professor, Long> {
     Optional<Professor> findByIdAndAcademiaId(Long id, Long academiaId);
     List<Professor> findAllByAcademiaId(Long academiaId);
+    List<Professor> findAllByAcademiaIdOrderByNomeAsc(Long academiaId);
 }

@@ -97,11 +97,39 @@ class AgendaServiceTest {
         assertEquals("PERSONAL", agenda.get(1).getTipo());
     }
 
+    @Test
+    void naoDeveCadastrarTurmaQuandoProfessorNaoMinistraModalidade() {
+        Fixture fx = fixture();
+        when(fx.professorModalidadeRepository.existsByAcademiaIdAndProfessorIdAndModalidadeIdAndAtivoTrueAndPermiteTurmaTrue(1L, 10L, 20L))
+                .thenReturn(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> fx.service.cadastrarHorarioTurma(horarioTurmaRequest(LocalTime.of(8, 0), LocalTime.of(9, 0))));
+
+        assertTrue(ex.getMessage().contains("não está autorizado"));
+        verify(fx.horarioTurmaRepository, never()).save(any());
+    }
+
+    @Test
+    void naoDeveCadastrarPersonalQuandoProfessorInativo() {
+        Fixture fx = fixture();
+        Professor inativo = professor(academia());
+        inativo.setAtivo(false);
+        when(fx.professorRepository.findByIdAndAcademiaId(10L, 1L)).thenReturn(Optional.of(inativo));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> fx.service.cadastrarAgendaPersonal(agendaPersonalRequest(LocalTime.of(8, 0), LocalTime.of(9, 0))));
+
+        assertTrue(ex.getMessage().contains("Professor inativo"));
+        verify(fx.agendaPersonalRepository, never()).save(any());
+    }
+
     private Fixture fixture() {
         HorarioTurmaRepository horarioTurmaRepository = mock(HorarioTurmaRepository.class);
         AgendaPersonalRepository agendaPersonalRepository = mock(AgendaPersonalRepository.class);
         ProfessorRepository professorRepository = mock(ProfessorRepository.class);
         ModalidadeRepository modalidadeRepository = mock(ModalidadeRepository.class);
+        ProfessorModalidadeRepository professorModalidadeRepository = mock(ProfessorModalidadeRepository.class);
         AlunoRepository alunoRepository = mock(AlunoRepository.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
 
@@ -115,11 +143,15 @@ class AgendaServiceTest {
         when(professorRepository.findByIdAndAcademiaId(10L, 1L)).thenReturn(Optional.of(professor));
         when(modalidadeRepository.findByIdAndAcademiaId(20L, 1L)).thenReturn(Optional.of(modalidade));
         when(alunoRepository.findByIdAndAcademiaId(30L, 1L)).thenReturn(Optional.of(aluno));
+        when(professorModalidadeRepository.existsByAcademiaIdAndProfessorIdAndModalidadeIdAndAtivoTrueAndPermiteTurmaTrue(1L, 10L, 20L))
+                .thenReturn(true);
+        when(professorModalidadeRepository.existsByAcademiaIdAndProfessorIdAndModalidadeIdAndAtivoTrueAndPermitePersonalTrue(1L, 10L, 20L))
+                .thenReturn(true);
 
         AgendaService service = new AgendaService(horarioTurmaRepository, agendaPersonalRepository,
-                professorRepository, modalidadeRepository, alunoRepository, permissaoService);
+                professorRepository, modalidadeRepository, professorModalidadeRepository, alunoRepository, permissaoService);
         return new Fixture(horarioTurmaRepository, agendaPersonalRepository, professorRepository,
-                modalidadeRepository, alunoRepository, permissaoService, service);
+                modalidadeRepository, professorModalidadeRepository, alunoRepository, permissaoService, service);
     }
 
     private HorarioTurmaRequest horarioTurmaRequest(LocalTime inicio, LocalTime fim) {
@@ -137,6 +169,7 @@ class AgendaServiceTest {
         AgendaPersonalRequest request = new AgendaPersonalRequest();
         request.setAlunoId(30L);
         request.setProfessorId(10L);
+        request.setModalidadeId(20L);
         request.setDiaSemana(DayOfWeek.MONDAY);
         request.setHoraInicial(inicio);
         request.setHoraFinal(fim);
@@ -162,6 +195,7 @@ class AgendaServiceTest {
         agenda.setId(2L);
         agenda.setProfessor(professor(academia()));
         agenda.setAluno(aluno(academia()));
+        agenda.setModalidade(modalidade());
         agenda.setDiaSemana(DayOfWeek.MONDAY);
         agenda.setHoraInicial(inicio);
         agenda.setHoraFinal(fim);
@@ -181,6 +215,7 @@ class AgendaServiceTest {
         professor.setId(10L);
         professor.setNome("Professor Teste");
         professor.setAcademia(academia);
+        professor.setAtivo(true);
         return professor;
     }
 
@@ -204,6 +239,7 @@ class AgendaServiceTest {
                            AgendaPersonalRepository agendaPersonalRepository,
                            ProfessorRepository professorRepository,
                            ModalidadeRepository modalidadeRepository,
+                           ProfessorModalidadeRepository professorModalidadeRepository,
                            AlunoRepository alunoRepository,
                            PermissaoService permissaoService,
                            AgendaService service) {

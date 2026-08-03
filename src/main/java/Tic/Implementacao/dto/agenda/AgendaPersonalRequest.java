@@ -14,6 +14,9 @@ public class AgendaPersonalRequest {
     @NotNull(message = "Professor é obrigatório")
     private Long professorId;
 
+    @NotNull(message = "Modalidade é obrigatória")
+    private Long modalidadeId;
+
     @NotNull(message = "Dia da semana é obrigatório")
     private DayOfWeek diaSemana;
 
@@ -30,6 +33,8 @@ public class AgendaPersonalRequest {
     public void setAlunoId(Long alunoId) { this.alunoId = alunoId; }
     public Long getProfessorId() { return professorId; }
     public void setProfessorId(Long professorId) { this.professorId = professorId; }
+    public Long getModalidadeId() { return modalidadeId; }
+    public void setModalidadeId(Long modalidadeId) { this.modalidadeId = modalidadeId; }
     public DayOfWeek getDiaSemana() { return diaSemana; }
     public void setDiaSemana(DayOfWeek diaSemana) { this.diaSemana = diaSemana; }
     public LocalTime getHoraInicial() { return horaInicial; }

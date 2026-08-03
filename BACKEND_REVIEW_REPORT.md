@@ -220,6 +220,51 @@ Dados administrativos:
 
 Essa melhoria deve ser feita em uma fase propria, com banco, DTOs, validacoes e formularios planejados em conjunto.
 
+### 12. Padronizar controllers legados
+
+Tambem apareceu um ponto importante para documentar: ha APIs novas bem padronizadas com DTOs, mas alguns controllers legados ainda retornam entidades JPA diretamente; isso fica registrado como oportunidade de melhoria futura sem quebrar compatibilidade agora.
+
+Pontos observados:
+
+- Novos modulos como graduacao, financeiro, dashboards e professores seguem melhor o padrao de DTOs.
+- Controllers antigos ainda podem expor detalhes internos da entidade ou depender de serializacao JPA.
+- A migracao deve ser gradual, tela por tela, conforme o frontend real demandar contratos mais estaveis.
+
+### 13. Evoluir cadastro e gestao real de professores
+
+Nesta etapa foi criado o cadastro real de professores, com Firebase Auth, usuario local com perfil `PROFESSOR`, isolamento por academia, status ativo/inativo e vinculos por modalidade.
+
+Melhorias futuras:
+
+- Avaliar desativacao tambem no Firebase Auth quando um professor for inativado localmente.
+- Criar endpoint especifico para o professor editar apenas dados permitidos do proprio perfil, se essa regra fizer sentido para o produto.
+- Migrar telas antigas para consumir somente `/api/professores` com DTOs.
+- Remover no futuro a interpretacao de `Modalidade.tipoModalidade` como turma/personal, mantendo modalidade apenas como especialidade, depois que todo o frontend estiver ajustado.
+
+### 14. Agenda personal com modalidade
+
+A agenda personal passou a exigir modalidade nos novos cadastros para validar corretamente se o professor pode atender personal naquela modalidade.
+
+Decisao tecnica:
+
+- A migration deixa `modalidade_id` opcional para preservar registros antigos.
+- A API nova exige `modalidadeId`.
+- Aulas concretas de personal copiam a modalidade da agenda recorrente, mantendo historico estavel.
+
+### 15. Validar migrations em banco limpo
+
+A validacao manual do modulo de professores confirmou que a estrutura da `V22__professores_reais_e_modalidades.sql` existe no banco PostgreSQL local, mas ela foi criada pelo Hibernate `ddl-auto=update`.
+
+Pendencia tecnica antes de considerar o fluxo de migrations totalmente validado:
+
+- Testar a aplicacao em um banco PostgreSQL limpo.
+- Executar todas as migrations pelo Flyway, de `V1` ate `V22`.
+- Confirmar que a `V22` e aplicada corretamente pelo Flyway.
+- Iniciar a aplicacao com `ddl-auto` configurado para nao criar estrutura automaticamente.
+- Validar constraints, indices e compatibilidade com dados existentes.
+
+Essa pendencia nao impede o commit da etapa, mas deve ser resolvida antes de tratar migrations como caminho unico de criacao do banco.
+
 ## Pontos Bons Encontrados
 
 - Separacao clara entre fatura e pagamento.

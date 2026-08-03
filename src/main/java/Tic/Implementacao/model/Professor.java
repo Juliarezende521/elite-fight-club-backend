@@ -18,6 +18,9 @@ public class Professor extends Pessoa{
     @JoinColumn(name = "academia_id")
     private Academia academia;
 
+    @Column(nullable = false)
+    private Boolean ativo = true;
+
     public Professor(String cpf, String nome, Long id, String especialidade, String contato) {
         super(cpf, nome);
         this.id = id;
@@ -73,5 +76,13 @@ public class Professor extends Pessoa{
 
     public void setAcademia(Academia academia) {
         this.academia = academia;
+    }
+
+    public Boolean getAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
     }
 }

@@ -243,6 +243,7 @@ public class AulaAgendaService {
         aula.setAgendaPersonal(agenda);
         aula.setAluno(agenda.getAluno());
         aula.setProfessor(agenda.getProfessor());
+        aula.setModalidade(agenda.getModalidade());
         aula.setData(data);
         aula.setHoraInicio(horaInicio == null ? agenda.getHoraInicial() : horaInicio);
         aula.setHoraFim(horaFim == null ? agenda.getHoraFinal() : horaFim);
@@ -301,7 +302,7 @@ public class AulaAgendaService {
                 aula.getId(),
                 aula.getAgendaPersonal().getId(),
                 aula.getAluno().getNome(),
-                null,
+                aula.getModalidade() == null ? null : aula.getModalidade().getNome(),
                 aula.getData(),
                 aula.getHoraInicio(),
                 aula.getHoraFim(),

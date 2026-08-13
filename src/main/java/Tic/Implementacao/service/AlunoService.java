@@ -3,6 +3,7 @@ package Tic.Implementacao.service;
 import Tic.Implementacao.model.*;
 import Tic.Implementacao.dto.aluno.AtualizarAlunoRequest;
 import Tic.Implementacao.dto.aluno.CriarAlunoRequest;
+import Tic.Implementacao.exception.NegocioException;
 import Tic.Implementacao.repository.AlunoRepository;
 import Tic.Implementacao.repository.ModalidadeRepository;
 import Tic.Implementacao.repository.PlanoRepository;
@@ -79,9 +80,18 @@ public class AlunoService {
 
     @Transactional
     public boolean remove(Long id){
+        permissaoService.exigirAdmin();
         Long academiaId = permissaoService.academiaAtualId();
-        if(repo.findByIdAndAcademiaId(id, academiaId).isPresent()){
-            repo.deleteById(id);
+        Optional<Aluno> alunoOptional = repo.findByIdAndAcademiaId(id, academiaId);
+        if(alunoOptional.isPresent()){
+            Aluno aluno = alunoOptional.get();
+            aluno.setAtivo(false);
+            repo.save(aluno);
+            usuarioRepository.findByAlunoIdAndAcademiaId(aluno.getId(), academiaId)
+                    .ifPresent(usuario -> {
+                        usuario.setAtivo(false);
+                        usuarioRepository.save(usuario);
+                    });
             return true;
         }
         return false;
@@ -89,21 +99,12 @@ public class AlunoService {
 
     @Transactional
     public Aluno atualizarDados(Long id, Aluno alterado){
-        Long academiaId = permissaoService.academiaAtualId();
-        if(repo.findByIdAndAcademiaId(id, academiaId).isPresent()){
-            Aluno atual = repo.findByIdAndAcademiaId(id, academiaId).orElseThrow();
-            alterado.setFirebaseUid(atual.getFirebaseUid());
-            alterado.setQuantidadeCheckins(atual.getQuantidadeCheckins());
-            alterado.setAcademia(atual.getAcademia());
-            alterado.setId(id);
-            return repo.save(alterado);
-        }
-        return null;
+        throw new NegocioException("Endpoint legado de atualização de aluno desativado. Use PUT /api/alunos/{id}.");
     }
 
     @Transactional
     public Aluno salva(Aluno aluno){
-        return repo.save(aluno);
+        throw new NegocioException("Endpoint legado de cadastro de aluno desativado. Use POST /api/alunos.");
     }
 
     public Aluno criarAluno(CriarAlunoRequest request) {

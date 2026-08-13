@@ -43,14 +43,14 @@ public class ModalidadeService {
 
     @Transactional
     public Modalidade salvar(Modalidade modalidade) {
-        permissaoService.exigirAdminOuProfessor();
+        permissaoService.exigirAdmin();
         modalidade.setAcademia(permissaoService.academiaAtual());
         return repository.save(modalidade);
     }
 
     @Transactional
     public Modalidade atualizar(Long id, Modalidade dadosNovos) {
-        permissaoService.exigirAdminOuProfessor();
+        permissaoService.exigirAdmin();
         Modalidade modalidade = buscarPorId(id)
                 .orElseThrow(() -> new RuntimeException("Modalidade não encontrada com ID: " + id));
 
@@ -65,7 +65,7 @@ public class ModalidadeService {
 
     @Transactional
     public boolean remover(Long id) {
-        permissaoService.exigirAdminOuProfessor();
+        permissaoService.exigirAdmin();
         if (buscarPorId(id).isPresent()) {
             repository.deleteById(id);
             return true;

@@ -67,6 +67,25 @@ Na pratica:
 
 ## Melhorias Futuras Recomendadas
 
+### Correcoes criticas de seguranca - etapa 1
+
+Foi aberta a branch `security/critical-legacy-endpoints` para tratar a primeira etapa de correcoes criticas sem misturar com a branch `feature/professor-management`.
+
+Resumo registrado em `SECURITY_REVIEW.md`:
+
+- `/auth/registrar` deixou de ser publico e foi desativado como cadastro local direto.
+- `/financeiros` legado foi bloqueado para evitar exposicao de entidade JPA e dados financeiros antigos.
+- CRUD legado de notificacoes foi bloqueado, preservando os endpoints oficiais de aluno e relatorio operacional.
+- Endpoints legados de aluno por entidade JPA foram desativados.
+- `DELETE /api/alunos/{id}` passou a inativar aluno e usuario local, sem apagar historico.
+- Escrita de modalidades passou a exigir `ADMIN`.
+- `RuntimeException` inesperada deixou de expor detalhes internos ao cliente.
+
+Validacoes da etapa:
+
+- `sh mvnw test`: 315 testes, 0 falhas, 0 erros.
+- Novos testes cobrem endpoints legados bloqueados, erro generico seguro, modalidade restrita a admin e inativacao logica de aluno.
+
 ### 1. Padronizar DTOs dos controllers legados
 
 Criar requests/responses especificos para controllers antigos que ainda usam entidades JPA diretamente.

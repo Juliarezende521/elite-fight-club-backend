@@ -4,6 +4,7 @@ package Tic.Implementacao.controller;
 import Tic.Implementacao.dto.aluno.CriarAlunoRequest;
 import Tic.Implementacao.dto.aluno.AtualizarAlunoRequest;
 import Tic.Implementacao.dto.aluno.AtualizarModalidadesAlunoRequest;
+import Tic.Implementacao.exception.ApiErrorResponse;
 import Tic.Implementacao.dto.graduacao.AlterarGraduacaoAlunoRequest;
 import Tic.Implementacao.dto.graduacao.HistoricoGraduacaoResponse;
 import Tic.Implementacao.dto.graduacao.PromoverGraduacaoAlunoRequest;
@@ -27,12 +28,14 @@ import Tic.Implementacao.service.PagamentoService;
 import jakarta.validation.Valid;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -95,8 +98,8 @@ public class AlunoController {
     }
 
     @PostMapping("/legado")
-    public ResponseEntity<Aluno> salva(@RequestBody Aluno aluno){
-        return ResponseEntity.ok(service.salva(aluno));
+    public ResponseEntity<ApiErrorResponse> salva(@RequestBody(required = false) Map<String, Object> ignored){
+        return endpointLegadoDesativado();
     }
 
 
@@ -109,13 +112,9 @@ public class AlunoController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<Aluno> atualizarDados(@PathVariable Long id, @RequestBody Aluno alterado){
-        Aluno resposta = service.atualizarDados(id, alterado);
-        if(resposta != null){
-            return ResponseEntity.ok(resposta);
-        }
-        return ResponseEntity.notFound().build();
-
+    public ResponseEntity<ApiErrorResponse> atualizarDados(@PathVariable Long id,
+                                                           @RequestBody(required = false) Map<String, Object> ignored){
+        return endpointLegadoDesativado();
     }
 
     @PutMapping("/{id}")
@@ -251,11 +250,13 @@ public class AlunoController {
         return ResponseEntity.noContent().build();
     }
 
-
-
-
-
-
-    
+    private ResponseEntity<ApiErrorResponse> endpointLegadoDesativado() {
+        return ResponseEntity.status(HttpStatus.GONE).body(new ApiErrorResponse(
+                410,
+                "LEGACY_ENDPOINT_DISABLED",
+                "Endpoint legado de alunos desativado. Use POST /api/alunos ou PUT /api/alunos/{id}.",
+                Map.of()
+        ));
+    }
 
 }

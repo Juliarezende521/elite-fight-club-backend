@@ -124,6 +124,36 @@ class AlunoServiceTest {
     }
 
     @Test
+    void removerAlunoInativaSemExcluirHistoricoESincronizaUsuarioLocal() {
+        AlunoRepository alunoRepository = mock(AlunoRepository.class);
+        UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+        PermissaoService permissaoService = mock(PermissaoService.class);
+        Academia academia = academia();
+        Aluno aluno = aluno(academia);
+        Usuario usuario = usuario(academia);
+        usuario.setAluno(aluno);
+
+        when(permissaoService.academiaAtualId()).thenReturn(1L);
+        when(alunoRepository.findByIdAndAcademiaId(10L, 1L)).thenReturn(java.util.Optional.of(aluno));
+        when(usuarioRepository.findByAlunoIdAndAcademiaId(10L, 1L)).thenReturn(java.util.Optional.of(usuario));
+
+        AlunoService service = new AlunoService(alunoRepository, usuarioRepository, mock(PlanoRepository.class),
+                mock(ModalidadeRepository.class), mock(FirebaseAuthService.class),
+                mock(GraduacaoService.class), mock(GraduacaoAlunoService.class), mock(FaturaService.class),
+                permissaoService, transactionManager());
+
+        assertTrue(service.remove(10L));
+
+        assertFalse(aluno.getAtivo());
+        assertFalse(usuario.getAtivo());
+        verify(permissaoService).exigirAdmin();
+        verify(alunoRepository).save(aluno);
+        verify(usuarioRepository).save(usuario);
+        verify(alunoRepository, never()).deleteById(anyLong());
+        verify(alunoRepository, never()).delete(any(Aluno.class));
+    }
+
+    @Test
     void deveCriarAlunoComModalidadeContratada() {
         AlunoRepository alunoRepository = mock(AlunoRepository.class);
         UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);

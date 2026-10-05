@@ -62,11 +62,12 @@ Problema encontrado:
 
 Correcao aplicada:
 
-- Endpoint legado mantido apenas como compatibilidade tecnica, mas desativado.
-- Qualquer metodo HTTP em `/Relatorio` e subrotas retorna `410 GONE` para `ADMIN`.
-- Perfis sem permissao administrativa continuam bloqueados.
+- Codigo Java legado removido: `RelatorioController`, `RelatorioService`, `RelatorioRepository` e entidade `Relatorio`.
 - `RelatorioService` foi desacoplado de `FinanceiroRepository` e `EvolucaoRepository`.
-- Tabelas historicas nao foram removidas nesta etapa.
+- A tabela historica `relatorios` nao foi removida nesta etapa e permanecera temporariamente no banco.
+- A auditoria local anterior indicou `0` registros em `relatorios`.
+- Nenhuma migration historica foi alterada.
+- Relatorios modernos permanecem ativos.
 
 Substitutos oficiais:
 
@@ -77,7 +78,7 @@ Substitutos oficiais:
 
 Pendencia:
 
-- Antes da remocao fisica futura, verificar contagens das tabelas `relatorios`, `financeiros` e `evolucoes`.
+- A remocao fisica futura da tabela `relatorios` deve ocorrer somente por migration propria, apos a estrategia de Flyway/baseline estar resolvida.
 - A baseline consolidada futura nao deve reproduzir `Relatorio` generico sem tenant como modelo canonico de relatorios.
 
 ### `/Evolucao`

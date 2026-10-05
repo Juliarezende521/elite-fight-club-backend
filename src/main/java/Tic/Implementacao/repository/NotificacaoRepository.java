@@ -15,11 +15,7 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long> 
 
     List<Notificacao> findByAlunoId(Long alunoId);
 
-    List<Notificacao> findByFinanceiroId(Long financeiroId);
-
     List<Notificacao> findByEnviadaFalse();
-
-    boolean existsByFinanceiroIdAndTipoNotificacao(Long financeiroId, TipoNotificacao tipoNotificacao);
 
     Optional<Notificacao> findByChaveIdempotencia(String chaveIdempotencia);
 

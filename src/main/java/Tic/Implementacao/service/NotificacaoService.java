@@ -6,13 +6,11 @@ import Tic.Implementacao.model.*;
 import Tic.Implementacao.repository.*;
 import Tic.Implementacao.security.PermissaoService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +25,6 @@ public class NotificacaoService {
     private static final String REF_AVALIACAO_GRADUACAO = "AVALIACAO_GRADUACAO";
 
     private final NotificacaoRepository repo;
-    private final FinanceiroRepository financeiroRepository;
     private final UsuarioRepository usuarioRepository;
     private final ConviteGraduacaoRepository conviteGraduacaoRepository;
     private final InscricaoGraduacaoRepository inscricaoGraduacaoRepository;
@@ -36,10 +33,8 @@ public class NotificacaoService {
     private final Clock clock;
     private final long prazoInscricaoHoras;
     private final long lembreteEventoHoras;
-    private final boolean notificacoesLegadoEnabled;
 
     public NotificacaoService(NotificacaoRepository repo,
-                              FinanceiroRepository financeiroRepository,
                               UsuarioRepository usuarioRepository,
                               ConviteGraduacaoRepository conviteGraduacaoRepository,
                               InscricaoGraduacaoRepository inscricaoGraduacaoRepository,
@@ -47,10 +42,8 @@ public class NotificacaoService {
                               PermissaoService permissaoService,
                               Clock clock,
                               @Value("${graduacao.notificacao.prazo-inscricao-horas:48}") long prazoInscricaoHoras,
-                              @Value("${graduacao.notificacao.lembrete-evento-horas:24}") long lembreteEventoHoras,
-                              @Value("${notificacoes.legado.enabled:false}") boolean notificacoesLegadoEnabled) {
+                              @Value("${graduacao.notificacao.lembrete-evento-horas:24}") long lembreteEventoHoras) {
         this.repo = repo;
-        this.financeiroRepository = financeiroRepository;
         this.usuarioRepository = usuarioRepository;
         this.conviteGraduacaoRepository = conviteGraduacaoRepository;
         this.inscricaoGraduacaoRepository = inscricaoGraduacaoRepository;
@@ -59,7 +52,6 @@ public class NotificacaoService {
         this.clock = clock;
         this.prazoInscricaoHoras = prazoInscricaoHoras;
         this.lembreteEventoHoras = lembreteEventoHoras;
-        this.notificacoesLegadoEnabled = notificacoesLegadoEnabled;
     }
 
     public List<Notificacao> listarTodos(){
@@ -162,7 +154,6 @@ public class NotificacaoService {
         notificacao.setDataEnvio(alterado.getDataEnvio());
         notificacao.setEnviada(alterado.isEnviada());
         notificacao.setAluno(alterado.getAluno());
-        notificacao.setFinanceiro(alterado.getFinanceiro());
         notificacao.setStatus(alterado.getStatus());
         notificacao.setAgendadaPara(alterado.getAgendadaPara());
 
@@ -176,47 +167,6 @@ public class NotificacaoService {
 
         notificacao.enviar();
         return repo.save(notificacao);
-    }
-
-    @Scheduled(cron = "0 0 8 * * *")
-    @Transactional
-    public void gerarNotificacoesAutomaticas() {
-        if (!notificacoesLegadoEnabled) {
-            return;
-        }
-        LocalDate hoje = LocalDate.now(clock);
-
-        financeiroRepository.findByDataPagamentoIsNullAndDataVencimento(hoje)
-                .forEach(financeiro -> criarNotificacaoSeNaoExistir(financeiro, TipoNotificacao.VENCIMENTO_HOJE,
-                        "Mensalidade vence hoje."));
-
-        financeiroRepository.findByDataPagamentoIsNullAndDataVencimento(hoje.minusDays(2))
-                .forEach(financeiro -> criarNotificacaoSeNaoExistir(financeiro, TipoNotificacao.VENCIDO_2_DIAS,
-                        "Mensalidade vencida há 2 dias."));
-
-        financeiroRepository.findByDataPagamentoIsNullAndDataVencimentoBefore(hoje.minusDays(2))
-                .forEach(financeiro -> criarNotificacaoSeNaoExistir(financeiro, TipoNotificacao.PAGAMENTO_ATRASADO,
-                        "Mensalidade está atrasada."));
-    }
-
-    @Transactional
-    public Notificacao criarNotificacaoSeNaoExistir(Financeiro financeiro, TipoNotificacao tipo, String mensagem) {
-        if (financeiro.getId() != null && repo.existsByFinanceiroIdAndTipoNotificacao(financeiro.getId(), tipo)) {
-            return null;
-        }
-
-        Notificacao notificacao = new Notificacao(tipo, mensagem);
-        notificacao.setTitulo("Aviso financeiro");
-        notificacao.setAluno(financeiro.getAluno());
-        notificacao.setFinanceiro(financeiro);
-        notificacao.setEnviada(false);
-        notificacao.setStatus(StatusNotificacao.PENDENTE);
-        if (financeiro.getAluno() != null) {
-            notificacao.setAcademia(financeiro.getAluno().getAcademia());
-            usuarioPorAluno(financeiro.getAluno()).ifPresent(notificacao::setDestinatario);
-        }
-
-        return salva(notificacao);
     }
 
     @Transactional

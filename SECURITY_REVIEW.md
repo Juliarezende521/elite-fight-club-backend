@@ -50,6 +50,36 @@ Substitutos oficiais:
 - Relatorios financeiros: `/api/relatorios/financeiro`.
 - Preferencias de pagamento do aluno: `/api/alunos/me/preferencia-pagamento`.
 
+### `/Relatorio`
+
+Problema encontrado:
+
+- Controller legado retornava entidade JPA `Relatorio` diretamente.
+- O service legado dependia de `FinanceiroRepository` e `EvolucaoRepository`.
+- A geracao financeira antiga podia consultar dados globais sem isolamento por academia.
+- A geracao de evolucao antiga podia consultar dados fisicos por `alunoId` sem garantir tenant.
+- A entidade `Relatorio` persiste texto generico sem `academia_id`, o que nao e adequado como modelo canonico para SaaS multiacademia.
+
+Correcao aplicada:
+
+- Endpoint legado mantido apenas como compatibilidade tecnica, mas desativado.
+- Qualquer metodo HTTP em `/Relatorio` e subrotas retorna `410 GONE` para `ADMIN`.
+- Perfis sem permissao administrativa continuam bloqueados.
+- `RelatorioService` foi desacoplado de `FinanceiroRepository` e `EvolucaoRepository`.
+- Tabelas historicas nao foram removidas nesta etapa.
+
+Substitutos oficiais:
+
+- Relatorios financeiros: `/api/relatorios/financeiro`.
+- Relatorio contabil: `/api/relatorios/financeiro/contabil`.
+- Relatorios de graduacao: `/api/relatorios/graduacoes` e `/api/eventos-graduacao/{id}/relatorio`.
+- Evolucao fisica moderna: `/api/alunos/me/pesos` e `/api/alunos/{id}/pesos`.
+
+Pendencia:
+
+- Antes da remocao fisica futura, verificar contagens das tabelas `relatorios`, `financeiros` e `evolucoes`.
+- A baseline consolidada futura nao deve reproduzir `Relatorio` generico sem tenant como modelo canonico de relatorios.
+
 ### `/notificacoes` e CRUD legado de notificacoes
 
 Problema encontrado:

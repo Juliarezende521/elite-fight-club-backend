@@ -160,6 +160,54 @@ class NotificacaoServiceTest {
     }
 
     @Test
+    void notificacaoFinanceiraUsaReferenciaFaturaSemFinanceiroLegado() {
+        Fixture fx = fixture();
+        when(fx.notificacaoRepository.save(any(Notificacao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Notificacao notificacao = fx.service.criarSeNaoExistir(fx.academia, fx.usuario,
+                TipoNotificacao.VENCIMENTO_MENSALIDADE_HOJE,
+                "Mensalidade vence hoje",
+                "Sua mensalidade vence hoje. Consulte a área financeira.",
+                "FATURA", 101L, null);
+
+        assertNotNull(notificacao);
+        assertEquals("FATURA", notificacao.getReferenciaTipo());
+        assertEquals(101L, notificacao.getReferenciaId());
+        assertEquals(fx.academia, notificacao.getAcademia());
+        assertEquals(fx.usuario, notificacao.getDestinatario());
+    }
+
+    @Test
+    void notificacaoFinanceiraUsaReferenciaPagamentoSemFinanceiroLegado() {
+        Fixture fx = fixture();
+        when(fx.notificacaoRepository.save(any(Notificacao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Notificacao notificacao = fx.service.criarSeNaoExistir(fx.academia, fx.usuario,
+                TipoNotificacao.PAGAMENTO_MENSALIDADE_CONFIRMADO,
+                "Pagamento confirmado",
+                "Pagamento confirmado.",
+                "PAGAMENTO", 501L, null);
+
+        assertNotNull(notificacao);
+        assertEquals("PAGAMENTO", notificacao.getReferenciaTipo());
+        assertEquals(501L, notificacao.getReferenciaId());
+    }
+
+    @Test
+    void referenciaInvalidaNaoCriaNotificacaoNemVazaDados() {
+        Fixture fx = fixture();
+
+        Notificacao notificacao = fx.service.criarSeNaoExistir(fx.academia, fx.usuario,
+                TipoNotificacao.VENCIMENTO_MENSALIDADE_HOJE,
+                "Mensalidade vence hoje",
+                "Mensagem genérica.",
+                null, 101L, null);
+
+        assertNull(notificacao);
+        verify(fx.notificacaoRepository, never()).save(any());
+    }
+
+    @Test
     void geraAvisoPrazoELembreteEventoPorEndpointManual() {
         Fixture fx = fixture();
         fx.evento.setFimInscricoes(LocalDateTime.now(CLOCK).plusHours(24));
@@ -177,14 +225,13 @@ class NotificacaoServiceTest {
 
     private Fixture fixture() {
         NotificacaoRepository notificacaoRepository = mock(NotificacaoRepository.class);
-        FinanceiroRepository financeiroRepository = mock(FinanceiroRepository.class);
         UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
         ConviteGraduacaoRepository conviteRepository = mock(ConviteGraduacaoRepository.class);
         InscricaoGraduacaoRepository inscricaoRepository = mock(InscricaoGraduacaoRepository.class);
         EventoGraduacaoRepository eventoRepository = mock(EventoGraduacaoRepository.class);
         PermissaoService permissaoService = mock(PermissaoService.class);
-        NotificacaoService service = new NotificacaoService(notificacaoRepository, financeiroRepository, usuarioRepository,
-                conviteRepository, inscricaoRepository, eventoRepository, permissaoService, CLOCK, 48, 24, false);
+        NotificacaoService service = new NotificacaoService(notificacaoRepository, usuarioRepository,
+                conviteRepository, inscricaoRepository, eventoRepository, permissaoService, CLOCK, 48, 24);
 
         Academia academia = new Academia();
         academia.setId(1L);
@@ -214,7 +261,7 @@ class NotificacaoServiceTest {
         evento.setStatus(StatusEventoGraduacao.PUBLICADO);
 
         when(usuarioRepository.findByAlunoIdAndAcademiaId(20L, 1L)).thenReturn(Optional.of(usuario));
-        return new Fixture(service, notificacaoRepository, financeiroRepository, usuarioRepository, conviteRepository,
+        return new Fixture(service, notificacaoRepository, usuarioRepository, conviteRepository,
                 inscricaoRepository, eventoRepository, permissaoService, academia, atual, destino, aluno, usuario, evento);
     }
 
@@ -297,7 +344,6 @@ class NotificacaoServiceTest {
 
     private record Fixture(NotificacaoService service,
                            NotificacaoRepository notificacaoRepository,
-                           FinanceiroRepository financeiroRepository,
                            UsuarioRepository usuarioRepository,
                            ConviteGraduacaoRepository conviteRepository,
                            InscricaoGraduacaoRepository inscricaoRepository,

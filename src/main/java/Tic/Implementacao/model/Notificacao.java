@@ -78,10 +78,6 @@ public class Notificacao {
     @JoinColumn(name = "aluno_id")
     private Aluno aluno;
 
-    @ManyToOne
-    @JoinColumn(name = "financeiro_id")
-    private Financeiro financeiro;
-
     public Notificacao(){
 
     }
@@ -234,14 +230,6 @@ public class Notificacao {
 
     public void setAluno(Aluno aluno) {
         this.aluno = aluno;
-    }
-
-    public Financeiro getFinanceiro() {
-        return financeiro;
-    }
-
-    public void setFinanceiro(Financeiro financeiro) {
-        this.financeiro = financeiro;
     }
 
     public void enviar(){

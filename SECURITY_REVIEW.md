@@ -80,6 +80,33 @@ Pendencia:
 - Antes da remocao fisica futura, verificar contagens das tabelas `relatorios`, `financeiros` e `evolucoes`.
 - A baseline consolidada futura nao deve reproduzir `Relatorio` generico sem tenant como modelo canonico de relatorios.
 
+### `/Evolucao`
+
+Problema encontrado:
+
+- Controller legado retornava entidade JPA `Evolucao` diretamente.
+- O endpoint permitia listar, criar, atualizar e excluir registros de evolucao fisica pelo fluxo antigo.
+- A entidade legada nao possui `academia_id` direto e nao atende ao isolamento multiacademia esperado para SaaS.
+- Os dados envolvidos podem conter informacoes fisicas sensiveis, como peso, bioimpedancia e observacoes.
+
+Correcao aplicada:
+
+- Endpoint legado mantido apenas como compatibilidade tecnica, mas desativado.
+- Qualquer metodo HTTP em `/Evolucao` e subrotas retorna `410 GONE` para `ADMIN`.
+- Perfis sem permissao administrativa continuam bloqueados.
+- A tabela `evolucoes` e a entidade legada foram preservadas temporariamente.
+- A auditoria local anterior indicou `0` registros em `evolucoes`.
+
+Substitutos oficiais:
+
+- Evolucao de peso: `/api/alunos/me/pesos` e `/api/alunos/{id}/pesos`.
+- Metas de peso, avaliacoes corporais, medidas corporais e bioimpedancia permanecem nos modelos modernos dedicados.
+
+Pendencia:
+
+- A remocao fisica de `Evolucao`, `EvolucaoRepository`, `EvolucaoService` e tabela `evolucoes` deve ocorrer somente em etapa futura coordenada com Flyway/baseline.
+- A tela `aluno.evolucao` do frontend ainda usa mock e deve ser integrada ao modelo moderno em etapa propria.
+
 ### `/notificacoes` e CRUD legado de notificacoes
 
 Problema encontrado:

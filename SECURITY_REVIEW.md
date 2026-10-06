@@ -50,6 +50,28 @@ Substitutos oficiais:
 - Relatorios financeiros: `/api/relatorios/financeiro`.
 - Preferencias de pagamento do aluno: `/api/alunos/me/preferencia-pagamento`.
 
+### `POST /api/webhooks/pagamentos/mock`
+
+Problema encontrado:
+
+- Endpoint mock de pagamento estava disponivel em runtime para qualquer usuario autenticado.
+- Recebia `idPagamentoExterno` e `status` por parametro.
+- Chamava diretamente o fluxo de alteracao de pagamento, podendo marcar pagamentos como `PAGO`.
+- Um aluno autenticado que recebesse ou conhecesse o identificador externo do Pix poderia tentar confirmar indevidamente um pagamento.
+- Para um SaaS multiacademia com fluxo financeiro real, isso representa risco alto e nao deve existir em producao.
+
+Correcao aplicada:
+
+- Endpoint mock removido do controller de webhooks.
+- Metodo mock removido do service de pagamentos.
+- O webhook real do Asaas foi preservado em `/api/webhooks/pagamentos/asaas`.
+- O webhook real continua validando `asaas-access-token` com comparacao segura e registrando eventos externos para idempotencia.
+- Testes garantem que a rota mock nao esta disponivel em runtime e que o webhook real permanece acessivel.
+
+Pendencia:
+
+- Caso seja necessario simular confirmacao de pagamentos em desenvolvimento, criar uma ferramenta administrativa/dev separada, explicitamente condicionada por profile/configuracao e nunca disponivel em producao.
+
 ### `/Relatorio`
 
 Problema encontrado:

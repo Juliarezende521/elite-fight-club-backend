@@ -203,30 +203,6 @@ public class PagamentoService {
     }
 
     @Transactional
-    public void processarWebhookMock(String idPagamentoExterno, StatusPagamento status) {
-        Pagamento pagamento = repository.findByIdPagamentoExterno(idPagamentoExterno)
-                .orElseThrow(() -> new RuntimeException("Pagamento externo não localizado"));
-
-        if (pagamento.getStatus() == StatusPagamento.PAGO) return;
-
-        pagamento.setWebhookStatus(status.name());
-        pagamento.setStatus(status);
-
-        if (status == StatusPagamento.PAGO) {
-            pagamento.setPagoEm(LocalDateTime.now());
-            if (pagamento.getTipoCobranca() == TipoCobranca.GRADUACAO) {
-                atualizarInscricaoPorPagamento(pagamento, StatusPagamento.PAGO);
-            } else {
-                pagamento.getFatura().setStatus(StatusFatura.PAGA);
-                pagamento.getFatura().setAtualizadoEm(LocalDateTime.now());
-                notificacaoFinanceiraAutomacaoService.notificarPagamentoMensalidade(pagamento, StatusPagamento.PAGO);
-            }
-        }
-
-        repository.save(pagamento);
-    }
-
-    @Transactional
     public void processarWebhookAsaas(String token, String payload) {
         validarWebhookToken(token);
         JsonNode root = parse(payload);

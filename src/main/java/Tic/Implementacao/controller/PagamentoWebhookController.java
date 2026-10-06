@@ -1,6 +1,5 @@
 package Tic.Implementacao.controller;
 
-import Tic.Implementacao.model.StatusPagamento;
 import Tic.Implementacao.service.PagamentoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,13 +12,6 @@ public class PagamentoWebhookController {
 
     public PagamentoWebhookController(PagamentoService service) {
         this.service = service;
-    }
-
-    @PostMapping("/mock")
-    public ResponseEntity<Void> receberWebhookMock(@RequestParam String idPagamentoExterno,
-                                                   @RequestParam StatusPagamento status) {
-        service.processarWebhookMock(idPagamentoExterno, status);
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/asaas")

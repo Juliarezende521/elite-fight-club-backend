@@ -336,7 +336,6 @@ A tabela abaixo foi gerada a partir dos controllers atuais. A coluna de perfil i
 | `GET` | `/api/faturas/{faturaId}/pagamentos` | Autenticado; regra final no service | `-` | `List<Pagamento>` |
 | `POST` | `/api/pagamentos/{pagamentoId}/conciliar` | Autenticado; regra final no service | `-` | `ConciliacaoPagamentoResponse` |
 | `POST` | `/api/webhooks/pagamentos/asaas` | Público | `String` | `Void` |
-| `POST` | `/api/webhooks/pagamentos/mock` | Público/integração validada por token | `-` | `Void` |
 
 ### Graduações e Eventos
 

@@ -1,69 +1,70 @@
 package Tic.Implementacao.controller;
 
-import Tic.Implementacao.model.Professor;
+import Tic.Implementacao.dto.professor.*;
+import Tic.Implementacao.model.TipoAtendimentoProfessor;
 import Tic.Implementacao.service.ProfessorService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
-@RequestMapping("/professores")
+@RequestMapping("/api/professores")
 public class ProfessorController {
 
-    private ProfessorService service;
+    private final ProfessorService service;
 
     public ProfessorController(ProfessorService service) {
         this.service = service;
     }
 
-
-    //GET
     @GetMapping
-    public ResponseEntity<List<Professor>> listar(){
-        return ResponseEntity.ok(service.listar());
+    public ResponseEntity<List<ProfessorResponse>> listar(
+            @RequestParam(required = false) Long modalidadeId,
+            @RequestParam(required = false) TipoAtendimentoProfessor tipoAtendimento) {
+        return ResponseEntity.ok(service.listar(modalidadeId, tipoAtendimento));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Optional<Professor>> exibirIdentificacao(@PathVariable Long id){
-        Optional<Professor> professor = service.exibirIdentificacao(id);
-        if(professor.isEmpty()){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(professor);
+    public ResponseEntity<ProfessorResponse> buscar(@PathVariable Long id) {
+        return ResponseEntity.ok(service.buscar(id));
     }
 
     @PostMapping
-    public ResponseEntity<Professor> salva(@RequestBody Professor professor){
-        Professor prof =  service.salva(professor);
-        if(prof !=null){
-            URI uri = URI.create("/professor"+prof.getId());
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ProfessorResponse> criar(@Valid @RequestBody CriarProfessorRequest request) {
+        ProfessorResponse response = service.criar(request);
+        return ResponseEntity.created(URI.create("/api/professores/" + response.getId())).body(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProfessorResponse> atualizar(@PathVariable Long id,
+                                                       @Valid @RequestBody AtualizarProfessorRequest request) {
+        return ResponseEntity.ok(service.atualizar(id, request));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ProfessorResponse> alterarStatus(@PathVariable Long id,
+                                                           @Valid @RequestBody AtualizarStatusProfessorRequest request) {
+        return ResponseEntity.ok(service.alterarStatus(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> remove(@PathVariable Long id){
-        if(service.remove(id)){
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<Void> desativar(@PathVariable Long id) {
+        service.remover(id);
+        return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}")
-    public ResponseEntity<Professor> atualizarDados(@PathVariable Long id, @RequestBody Professor alterado){
-        Professor resposta = service.atualizarDados(id, alterado);
-        if(resposta != null){
-            return ResponseEntity.ok(resposta);
-        }
-        return ResponseEntity.notFound().build();
-
+    @GetMapping("/{id}/modalidades")
+    public ResponseEntity<List<ProfessorModalidadeResponse>> listarModalidades(@PathVariable Long id) {
+        return ResponseEntity.ok(service.listarModalidades(id));
     }
 
-
-
+    @PutMapping("/{id}/modalidades")
+    public ResponseEntity<ProfessorResponse> atualizarModalidades(
+            @PathVariable Long id,
+            @Valid @RequestBody AtualizarModalidadesProfessorRequest request) {
+        return ResponseEntity.ok(service.atualizarModalidades(id, request));
+    }
 }

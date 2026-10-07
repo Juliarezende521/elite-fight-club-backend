@@ -33,6 +33,10 @@ public class AulaPersonal {
     @JoinColumn(name = "professor_id", nullable = false)
     private Professor professor;
 
+    @ManyToOne
+    @JoinColumn(name = "modalidade_id")
+    private Modalidade modalidade;
+
     @Column(nullable = false)
     private LocalDate data;
 
@@ -72,6 +76,8 @@ public class AulaPersonal {
     public void setAluno(Aluno aluno) { this.aluno = aluno; }
     public Professor getProfessor() { return professor; }
     public void setProfessor(Professor professor) { this.professor = professor; }
+    public Modalidade getModalidade() { return modalidade; }
+    public void setModalidade(Modalidade modalidade) { this.modalidade = modalidade; }
     public LocalDate getData() { return data; }
     public void setData(LocalDate data) { this.data = data; }
     public LocalTime getHoraInicio() { return horaInicio; }

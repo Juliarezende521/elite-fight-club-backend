@@ -29,6 +29,10 @@ public class AgendaPersonal {
     @JoinColumn(name = "professor_id", nullable = false)
     private Professor professor;
 
+    @ManyToOne
+    @JoinColumn(name = "modalidade_id")
+    private Modalidade modalidade;
+
     @NotNull(message = "Dia da semana é obrigatório")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -60,6 +64,8 @@ public class AgendaPersonal {
     public void setAluno(Aluno aluno) { this.aluno = aluno; }
     public Professor getProfessor() { return professor; }
     public void setProfessor(Professor professor) { this.professor = professor; }
+    public Modalidade getModalidade() { return modalidade; }
+    public void setModalidade(Modalidade modalidade) { this.modalidade = modalidade; }
     public DayOfWeek getDiaSemana() { return diaSemana; }
     public void setDiaSemana(DayOfWeek diaSemana) { this.diaSemana = diaSemana; }
     public LocalTime getHoraInicial() { return horaInicial; }

@@ -23,6 +23,7 @@ public class AgendaService {
     private final AgendaPersonalRepository agendaPersonalRepository;
     private final ProfessorRepository professorRepository;
     private final ModalidadeRepository modalidadeRepository;
+    private final ProfessorModalidadeRepository professorModalidadeRepository;
     private final AlunoRepository alunoRepository;
     private final PermissaoService permissaoService;
 
@@ -30,12 +31,14 @@ public class AgendaService {
                          AgendaPersonalRepository agendaPersonalRepository,
                          ProfessorRepository professorRepository,
                          ModalidadeRepository modalidadeRepository,
+                         ProfessorModalidadeRepository professorModalidadeRepository,
                          AlunoRepository alunoRepository,
                          PermissaoService permissaoService) {
         this.horarioTurmaRepository = horarioTurmaRepository;
         this.agendaPersonalRepository = agendaPersonalRepository;
         this.professorRepository = professorRepository;
         this.modalidadeRepository = modalidadeRepository;
+        this.professorModalidadeRepository = professorModalidadeRepository;
         this.alunoRepository = alunoRepository;
         this.permissaoService = permissaoService;
     }
@@ -48,6 +51,8 @@ public class AgendaService {
         Professor professor = buscarProfessor(request.getProfessorId(), academiaId);
         Modalidade modalidade = modalidadeRepository.findByIdAndAcademiaId(request.getModalidadeId(), academiaId)
                 .orElseThrow(() -> new RuntimeException("Modalidade não encontrada com ID: " + request.getModalidadeId()));
+        validarProfessorAtivo(professor);
+        validarProfessorPodeMinistrarTurma(professor, modalidade, academiaId);
 
         validarConflito(professor.getId(), request.getDiaSemana(), request.getHoraInicial(), request.getHoraFinal(), null, null);
 
@@ -71,6 +76,10 @@ public class AgendaService {
         Professor professor = buscarProfessor(request.getProfessorId(), academiaId);
         Aluno aluno = alunoRepository.findByIdAndAcademiaId(request.getAlunoId(), academiaId)
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado com ID: " + request.getAlunoId()));
+        Modalidade modalidade = modalidadeRepository.findByIdAndAcademiaId(request.getModalidadeId(), academiaId)
+                .orElseThrow(() -> new RuntimeException("Modalidade não encontrada com ID: " + request.getModalidadeId()));
+        validarProfessorAtivo(professor);
+        validarProfessorPodeMinistrarPersonal(professor, modalidade, academiaId);
 
         validarConflito(professor.getId(), request.getDiaSemana(), request.getHoraInicial(), request.getHoraFinal(), null, null);
 
@@ -78,6 +87,7 @@ public class AgendaService {
         agenda.setAcademia(permissaoService.academiaAtual());
         agenda.setAluno(aluno);
         agenda.setProfessor(professor);
+        agenda.setModalidade(modalidade);
         agenda.setDiaSemana(request.getDiaSemana());
         agenda.setHoraInicial(request.getHoraInicial());
         agenda.setHoraFinal(request.getHoraFinal());
@@ -108,7 +118,7 @@ public class AgendaService {
                         "PERSONAL",
                         personal.getId(),
                         personal.getAluno().getNome(),
-                        null,
+                        personal.getModalidade() == null ? null : personal.getModalidade().getNome(),
                         personal.getHoraInicial(),
                         personal.getHoraFinal(),
                         null
@@ -128,6 +138,8 @@ public class AgendaService {
         Professor professor = buscarProfessor(request.getProfessorId(), academiaId);
         Modalidade modalidade = modalidadeRepository.findByIdAndAcademiaId(request.getModalidadeId(), academiaId)
                 .orElseThrow(() -> new RuntimeException("Modalidade não encontrada com ID: " + request.getModalidadeId()));
+        validarProfessorAtivo(professor);
+        validarProfessorPodeMinistrarTurma(professor, modalidade, academiaId);
 
         validarConflito(professor.getId(), request.getDiaSemana(), request.getHoraInicial(), request.getHoraFinal(), id, null);
 
@@ -150,11 +162,16 @@ public class AgendaService {
         Professor professor = buscarProfessor(request.getProfessorId(), academiaId);
         Aluno aluno = alunoRepository.findByIdAndAcademiaId(request.getAlunoId(), academiaId)
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado com ID: " + request.getAlunoId()));
+        Modalidade modalidade = modalidadeRepository.findByIdAndAcademiaId(request.getModalidadeId(), academiaId)
+                .orElseThrow(() -> new RuntimeException("Modalidade não encontrada com ID: " + request.getModalidadeId()));
+        validarProfessorAtivo(professor);
+        validarProfessorPodeMinistrarPersonal(professor, modalidade, academiaId);
 
         validarConflito(professor.getId(), request.getDiaSemana(), request.getHoraInicial(), request.getHoraFinal(), null, id);
 
         agenda.setProfessor(professor);
         agenda.setAluno(aluno);
+        agenda.setModalidade(modalidade);
         agenda.setDiaSemana(request.getDiaSemana());
         agenda.setHoraInicial(request.getHoraInicial());
         agenda.setHoraFinal(request.getHoraFinal());
@@ -183,6 +200,30 @@ public class AgendaService {
     private Professor buscarProfessor(Long professorId, Long academiaId) {
         return professorRepository.findByIdAndAcademiaId(professorId, academiaId)
                 .orElseThrow(() -> new RuntimeException("Professor não encontrado com ID: " + professorId));
+    }
+
+    private void validarProfessorAtivo(Professor professor) {
+        if (!Boolean.TRUE.equals(professor.getAtivo())) {
+            throw new RuntimeException("Professor inativo não pode ser vinculado à agenda");
+        }
+    }
+
+    private void validarProfessorPodeMinistrarTurma(Professor professor, Modalidade modalidade, Long academiaId) {
+        boolean permitido = professorModalidadeRepository
+                .existsByAcademiaIdAndProfessorIdAndModalidadeIdAndAtivoTrueAndPermiteTurmaTrue(
+                        academiaId, professor.getId(), modalidade.getId());
+        if (!permitido) {
+            throw new RuntimeException("Professor não está autorizado para turmas desta modalidade");
+        }
+    }
+
+    private void validarProfessorPodeMinistrarPersonal(Professor professor, Modalidade modalidade, Long academiaId) {
+        boolean permitido = professorModalidadeRepository
+                .existsByAcademiaIdAndProfessorIdAndModalidadeIdAndAtivoTrueAndPermitePersonalTrue(
+                        academiaId, professor.getId(), modalidade.getId());
+        if (!permitido) {
+            throw new RuntimeException("Professor não está autorizado para personal desta modalidade");
+        }
     }
 
     private void validarConflito(Long professorId, DayOfWeek diaSemana, LocalTime inicio, LocalTime fim,

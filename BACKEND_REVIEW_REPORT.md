@@ -74,7 +74,7 @@ Foi aberta a branch `security/critical-legacy-endpoints` para tratar a primeira 
 Resumo registrado em `SECURITY_REVIEW.md`:
 
 - `/auth/registrar` deixou de ser publico e foi desativado como cadastro local direto.
-- `/financeiros` legado foi bloqueado para evitar exposicao de entidade JPA e dados financeiros antigos.
+- O codigo Java de `/financeiros` legado foi removido para evitar exposicao de entidade JPA e dados financeiros antigos; a tabela historica permanece para etapa futura de migracao/baseline.
 - CRUD legado de notificacoes foi bloqueado, preservando os endpoints oficiais de aluno e relatorio operacional.
 - Endpoints legados de aluno por entidade JPA foram desativados.
 - `DELETE /api/alunos/{id}` passou a inativar aluno e usuario local, sem apagar historico.

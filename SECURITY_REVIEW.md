@@ -39,9 +39,11 @@ Problema encontrado:
 
 Correcao aplicada:
 
-- Endpoint legado mantido apenas como compatibilidade tecnica, mas desativado.
-- Qualquer metodo HTTP em `/financeiros` retorna `410 GONE` para `ADMIN`.
-- Perfis sem permissao administrativa continuam bloqueados.
+- Codigo Java legado removido: `FinanceiroController`, `FinanceiroService`, `FinanceiroRepository`, entidade `Financeiro` e teste do controller legado.
+- O endpoint `/financeiros` nao esta mais disponivel em runtime.
+- A tabela historica `financeiros` nao foi removida nesta etapa e permanecera temporariamente no banco.
+- Nenhuma migration historica foi alterada.
+- O fluxo financeiro moderno permanece baseado em faturas, pagamentos, preferencias e relatorios.
 
 Substitutos oficiais:
 
@@ -49,6 +51,11 @@ Substitutos oficiais:
 - Pagamentos: `/api/pagamentos`.
 - Relatorios financeiros: `/api/relatorios/financeiro`.
 - Preferencias de pagamento do aluno: `/api/alunos/me/preferencia-pagamento`.
+
+Pendencia:
+
+- A remocao fisica futura da tabela `financeiros` deve ocorrer somente por migration propria, apos a estrategia de Flyway/baseline estar resolvida.
+- A baseline consolidada futura nao deve reproduzir `Financeiro` legado como modelo canonico financeiro.
 
 ### `POST /api/webhooks/pagamentos/mock`
 
@@ -221,7 +228,6 @@ Rotas reais usadas pelo frontend e preservadas:
 ## Testes adicionados
 
 - `AuthControllerTest`: bloqueio do cadastro local direto.
-- `FinanceiroControllerTest`: endpoint financeiro legado desativado e bloqueado por perfil.
 - `NotificacaoControllerTest`: CRUD legado desativado, relatorio preservado e bloqueio por perfil.
 - `ModalidadeServiceTest`: somente `ADMIN` cria/edita modalidade.
 - `GlobalExceptionHandlerTest`: erro inesperado nao expoe detalhes internos.

@@ -309,20 +309,6 @@ A tabela abaixo foi gerada a partir dos controllers atuais. A coluna de perfil i
 | `POST` | `/api/faturas/mensais/{mesReferencia}` | Autenticado; regra final no service | `-` | `Void` |
 | `POST` | `/api/faturas/{faturaId}/pix` | Autenticado; regra final no service | `-` | `CobrancaPixResponse` |
 | `PATCH` | `/api/faturas/{id}/cancelar` | Autenticado; regra final no service | `-` | `Fatura` |
-| `GET` | `/financeiros` | Autenticado; regra final no service | `-` | `List<Financeiro>` |
-| `POST` | `/financeiros` | Autenticado; regra final no service | `Financeiro` | `Financeiro` |
-| `GET` | `/financeiros/aluno/{alunoId}` | Autenticado; regra final no service | `-` | `List<Financeiro>` |
-| `GET` | `/financeiros/modalidade/{modalidadeId}` | Autenticado; regra final no service | `-` | `List<Financeiro>` |
-| `GET` | `/financeiros/pagos` | Autenticado; regra final no service | `-` | `List<Financeiro>` |
-| `GET` | `/financeiros/tipo/{tipoModalidade}` | Autenticado; regra final no service | `-` | `List<Financeiro>` |
-| `GET` | `/financeiros/total-recebido` | Autenticado; regra final no service | `-` | `Double` |
-| `GET` | `/financeiros/total-recebido/tipo/{tipoModalidade}` | Autenticado; regra final no service | `-` | `Double` |
-| `GET` | `/financeiros/vence-hoje` | Autenticado; regra final no service | `-` | `List<Financeiro>` |
-| `GET` | `/financeiros/vencidos` | Autenticado; regra final no service | `-` | `List<Financeiro>` |
-| `DELETE` | `/financeiros/{id}` | Autenticado; regra final no service | `-` | `Void` |
-| `GET` | `/financeiros/{id}` | Autenticado; regra final no service | `-` | `Optional<Financeiro>` |
-| `PATCH` | `/financeiros/{id}` | Autenticado; regra final no service | `Financeiro` | `Financeiro` |
-| `PATCH` | `/financeiros/{id}/pagar` | Autenticado; regra final no service | `-` | `Financeiro` |
 
 ### Pagamentos
 

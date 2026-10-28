@@ -1,193 +1,133 @@
-# Elite Fight Club Backend
+# Elite Fight Club — Backend
 
-Backend Spring Boot da plataforma de gestao Elite Fight Club.
+[![Backend CI](https://github.com/Juliarezende521/elite-fight-club-backend-atual/actions/workflows/ci.yml/badge.svg)](https://github.com/Juliarezende521/elite-fight-club-backend-atual/actions/workflows/ci.yml)
 
-Este marco representa a primeira versao estavel do backend, pronta para iniciar o desenvolvimento do Frontend React.
+API REST do **Elite Fight Club**, um projeto pessoal de gestão para academias de artes marciais. O sistema centraliza alunos, aulas, presenças, mensalidades, evolução física e graduações em uma plataforma multiacademia.
 
-## Problema Resolvido
+> Projeto pessoal em desenvolvimento, independente dos trabalhos acadêmicos realizados em grupo.
 
-Academias de luta costumam controlar alunos, mensalidades, presencas, aulas e graduacoes em ferramentas separadas. Este backend centraliza esses fluxos em uma API organizada por camadas, com persistencia em banco, controle de permissao e preparacao para integracao de pagamentos via Pix.
+## Status
+
+O backend possui um núcleo funcional estável, com autenticação, autorização por perfil, isolamento por academia, migrations e testes automatizados. A integração com o frontend React está em andamento.
+
+- Build e testes executados automaticamente pelo GitHub Actions.
+- Pagamentos externos configurados somente para o ambiente sandbox.
+- Credenciais e segredos não são versionados.
+- Deploy público ainda não realizado.
+
+## Problema abordado
+
+Academias de luta frequentemente controlam alunos, mensalidades, aulas, presenças e graduações em ferramentas separadas. O Elite Fight Club explora uma solução única, organizada por módulos e preparada para diferentes perfis de acesso.
+
+## Funcionalidades implementadas
+
+- Autenticação com Firebase e permissões para administrador, professor e aluno.
+- Isolamento de dados por academia.
+- Gestão de alunos, professores, modalidades e planos.
+- Agenda de turmas e aulas particulares.
+- Reservas, presença e check-in por QR Code.
+- Faturas, pagamentos, preferências de pagamento e conciliação.
+- Integração Pix com Asaas Sandbox e webhook idempotente.
+- Notificações financeiras automáticas.
+- Dashboard do aluno.
+- Evolução física, peso, metas e avaliação corporal.
+- Graduações, eventos, avaliações, certificados e relatórios.
+- Relatórios financeiros e contábeis.
 
 ## Tecnologias
 
 - Java 21
-- Spring Boot
-- Spring Web
+- Spring Boot 4
+- Spring Web MVC
 - Spring Data JPA
 - Spring Security
 - Bean Validation
 - Flyway
+- PostgreSQL
+- H2 para testes
+- Firebase Admin
+- Asaas Sandbox
 - Maven
-- PostgreSQL em desenvolvimento/producao
-- H2 em testes automatizados
-- Firebase Admin para autenticacao
-- Asaas Sandbox para Pix
 - JUnit e Mockito
 
 ## Arquitetura
 
-O backend segue arquitetura em camadas:
+O projeto utiliza uma arquitetura em camadas:
 
-- `model`: entidades JPA e enums do dominio.
-- `repository`: interfaces Spring Data JPA.
-- `service`: regras de negocio, validacoes e integracoes.
 - `controller`: endpoints REST.
-- `dto`: objetos de entrada e resposta da API.
-- `security`: autenticacao e permissoes.
-- `payments`: abstracao de provedor de pagamento e implementacao Asaas.
-- `db/migration`: migrations versionadas do banco.
+- `dto`: contratos de entrada e saída.
+- `service`: regras de negócio e autorização.
+- `repository`: persistência com Spring Data JPA.
+- `model`: entidades e enums do domínio.
+- `security`: autenticação e controle de acesso.
+- `payments`: abstração dos provedores de pagamento.
+- `db/migration`: evolução versionada do banco.
 
-O projeto Spring Boot fica na raiz deste repositorio.
+A documentação técnica complementar está disponível em:
 
-## Funcionalidades Implementadas
+- `FRONTEND_READY.md`
+- `BACKEND_REVIEW_REPORT.md`
+- `SECURITY_REVIEW.md`
+- `docs/TESTE_ASAAS_SANDBOX.md`
 
-- Agenda.
-- Reservas.
-- Check-in QR.
-- Financeiro.
-- Pix Asaas.
-- Webhooks.
-- Preferencia de pagamento.
-- Notificacoes automaticas.
-- Dashboard.
-- Evolucao Fisica.
-- Graduacao.
-- Eventos.
-- Certificados.
-- Relatorios Financeiros.
-- Relatorio Contabil.
-- Multiacademia.
-- Spring Security.
-- Flyway.
-- Testes automatizados.
+## Configuração local
 
-## Modulos Implementados
+Pré-requisitos:
 
-- Autenticacao e permissoes por perfil.
-- Isolamento por academia.
-- Alunos, professores, modalidades e planos.
-- Financeiro, faturas, pagamentos e preferencia de pagamento do aluno.
-- Integracao Pix com Asaas Sandbox.
-- Webhook idempotente e conciliacao de pagamentos.
-- Notificacoes financeiras automaticas por vencimento, atraso, confirmacao e estorno.
-- Agenda recorrente de turmas e personal.
-- Geracao de aulas concretas.
-- Reservas de aulas de turma.
-- Agenda unificada do professor.
-- Presenca e check-in.
-- QR fixo por academia.
-- Dashboard consolidado do aluno.
-- Evolucao fisica, peso, metas e avaliacao corporal.
-- Configuracao de Prajieds/graduacoes.
-- Elegibilidade e historico de graduacao.
-- Eventos de graduacao.
-- Convites e inscricoes em eventos de graduacao.
-- Pagamento Pix de inscricao de graduacao.
-- Avaliacao tecnica, promocao manual e certificados.
-- Relatorios financeiros, contabeis e de graduacao.
+- Java 21
+- PostgreSQL
+- Maven Wrapper incluído no projeto
 
-## Configuracao por Ambiente
+Crie suas variáveis a partir de `.env.example`. Os principais valores são:
 
-Credenciais e segredos nao sao versionados. Use variaveis de ambiente ou um arquivo local ignorado pelo Git.
-
-Existe um arquivo de exemplo seguro:
-
-```text
-.env.example
-```
-
-Variaveis principais:
-
-```text
+```env
 SPRING_PROFILES_ACTIVE=dev
-
-DATABASE_URL=
+DATABASE_URL=jdbc:postgresql://localhost:5432/elite
 DATABASE_USERNAME=
 DATABASE_PASSWORD=
-
 FIREBASE_CREDENTIALS_PATH=
-
 PAYMENT_PROVIDER=mock
-ASAAS_BASE_URL=https://api-sandbox.asaas.com/v3
 ASAAS_API_KEY=
 ASAAS_WEBHOOK_TOKEN=
-
-APP_PUBLIC_URL=
-CHECKIN_MINUTES_BEFORE=15
-CHECKIN_MINUTES_AFTER=15
-CHECKIN_FRONTEND_BASE_URL=http://localhost:3000
+APP_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
-## Como Executar
+Nunca versione chaves do Firebase, tokens do Asaas ou senhas do banco.
 
-Execute a aplicacao:
+Execute a aplicação:
 
 ```bash
-sh mvnw spring-boot:run
+./mvnw spring-boot:run
 ```
 
-Por padrao, o perfil ativo e `dev`. Configure `DATABASE_URL`, `DATABASE_USERNAME` e `DATABASE_PASSWORD` para usar PostgreSQL local.
+No Windows:
 
-## Testes
+```powershell
+.\mvnw.cmd spring-boot:run
+```
 
-Para rodar os testes:
+## Testes e qualidade
 
 ```bash
-sh mvnw test
+./mvnw clean verify
 ```
 
-Para validar o pacote completo:
+O workflow `Backend CI` repete essa validação automaticamente a cada push e pull request para a branch principal.
 
-```bash
-sh mvnw clean package
-```
+## Frontend
 
-## Asaas Sandbox
+O frontend está sendo desenvolvido separadamente em:
 
-O projeto possui uma camada de pagamentos desacoplada por provedor. Em desenvolvimento, o provedor padrao pode ser `mock`. Para testar Pix com Asaas Sandbox:
+[elite-fight-club-front](https://github.com/Juliarezende521/elite-fight-club-front)
 
-```text
-PAYMENT_PROVIDER=asaas
-ASAAS_BASE_URL=https://api-sandbox.asaas.com/v3
-ASAAS_API_KEY=
-ASAAS_WEBHOOK_TOKEN=
-```
+## Processo de desenvolvimento
 
-Nunca versione a chave da API nem o token de webhook. A documentacao complementar de teste esta em:
+Ferramentas de inteligência artificial são utilizadas como apoio para pesquisa, revisão e implementação. As decisões de arquitetura, a validação das regras, os testes e a evolução do produto são acompanhados e revisados durante o desenvolvimento.
 
-```text
-docs/TESTE_ASAAS_SANDBOX.md
-```
+## Próximas etapas
 
-## Documentacao para Frontend
-
-O guia de prontidao para frontend esta em:
-
-```text
-FRONTEND_READY.md
-```
-
-Ele contem a ordem recomendada de implementacao, fluxos principais, perfis, autenticacao e inventario dos endpoints existentes.
-
-O relatorio tecnico de revisao do backend esta em:
-
-```text
-BACKEND_REVIEW_REPORT.md
-```
-
-Ele registra pontos fortes, validacoes executadas e melhorias futuras recomendadas sem quebrar compatibilidade.
-
-## Status Atual
-
-O backend possui o nucleo funcional da plataforma, com migrations, testes automatizados, seguranca por perfil, multiacademia e integracoes preparadas para ambiente sandbox. Esta versao fecha o primeiro marco estavel do backend.
-
-## Proxima etapa
-
-Frontend React.
-
-## Roadmap
-
-- Criar frontend para professor, aluno e administrador.
-- Refinar UX dos dashboards.
-- Adicionar observabilidade e auditoria.
-- Preparar deploy em ambiente de homologacao.
+- Concluir a integração dos módulos do frontend com a API.
+- Ampliar testes integrados com PostgreSQL.
+- Adicionar documentação OpenAPI.
+- Refinar auditoria e observabilidade.
+- Preparar um ambiente gratuito de demonstração, se houver uma opção adequada.

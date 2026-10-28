@@ -1,6 +1,6 @@
 # Elite Fight Club — Backend
 
-[![Backend CI](https://github.com/Juliarezende521/elite-fight-club-backend-atual/actions/workflows/ci.yml/badge.svg)](https://github.com/Juliarezende521/elite-fight-club-backend-atual/actions/workflows/ci.yml)
+[![Backend CI](https://github.com/Juliarezende521/elite-fight-club-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/Juliarezende521/elite-fight-club-backend/actions/workflows/ci.yml)
 
 API REST do **Elite Fight Club**, um projeto pessoal de gestão para academias de artes marciais. O sistema centraliza alunos, aulas, presenças, mensalidades, evolução física e graduações em uma plataforma multiacademia.
 

@@ -27,6 +27,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
+                .exceptionHandling(errors -> errors.defaultAuthenticationEntryPointFor(
+                        (request, response, exception) -> {
+                            response.setStatus(401);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"status\":401,\"erro\":\"UNAUTHORIZED\",\"mensagem\":\"Autenticacao obrigatoria\",\"campos\":{}}");
+                        },
+                        request -> request.getServletPath().equals("/professores")
+                                || request.getServletPath().startsWith("/professores/")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/auth/me").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/webhooks/pagamentos/asaas").permitAll()

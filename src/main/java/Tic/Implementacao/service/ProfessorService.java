@@ -1,55 +1,75 @@
 package Tic.Implementacao.service;
 
+import Tic.Implementacao.dto.professor.ProfessorRequest;
+import Tic.Implementacao.dto.professor.ProfessorResponse;
 import Tic.Implementacao.model.Professor;
+import Tic.Implementacao.model.Usuario;
 import Tic.Implementacao.repository.ProfessorRepository;
 import Tic.Implementacao.security.PermissaoService;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ProfessorService {
-
     private final ProfessorRepository repo;
-    private final PermissaoService permissaoService;
-
-    public ProfessorService(ProfessorRepository repo, PermissaoService permissaoService) {
+    private final PermissaoService permissoes;
+    public ProfessorService(ProfessorRepository repo, PermissaoService permissoes) {
         this.repo = repo;
-        this.permissaoService = permissaoService;
+        this.permissoes = permissoes;
     }
-
-    public List<Professor> listar(){
-        return repo.findAllByAcademiaId(permissaoService.academiaAtualId());
-    }
-
-    public Optional<Professor> exibirIdentificacao(Long id){
-        return repo.findByIdAndAcademiaId(id, permissaoService.academiaAtualId());
-    }
-
-    @Transactional
-    public boolean remove(Long id){
-        if(repo.findByIdAndAcademiaId(id, permissaoService.academiaAtualId()).isPresent()){
-            repo.deleteById(id);
-            return true;
+    private void autorizar() {
+        Usuario usuario;
+        try {
+            usuario = permissoes.usuarioAtual();
+        } catch (RuntimeException ex) {
+            throw new AuthenticationCredentialsNotFoundException("Autenticacao obrigatoria");
         }
-        return false;
+        if (!Boolean.TRUE.equals(usuario.getAtivo())) throw new AccessDeniedException("Usuario inativo");
+        permissoes.exigirAdmin();
     }
-
-    @Transactional
-    public Professor atualizarDados(Long id, Professor alterado){
-        if (repo.findByIdAndAcademiaId(id, permissaoService.academiaAtualId()).isPresent()){
-            alterado.setAcademia(permissaoService.academiaAtual());
-            alterado.setId(id);
-            return repo.save(alterado);
-        }
-        return null;
+    @Transactional(readOnly = true)
+    public List<ProfessorResponse> listar() {
+        autorizar();
+        return repo.findAllByAcademiaId(permissoes.academiaAtualId()).stream().map(ProfessorResponse::from).toList();
     }
-
+    @Transactional(readOnly = true)
+    public ProfessorResponse exibirIdentificacao(Long id) {
+        autorizar();
+        return ProfessorResponse.from(buscar(id));
+    }
     @Transactional
-    public Professor salva(Professor professor){
-        professor.setAcademia(permissaoService.academiaAtual());
-        return repo.save(professor);
+    public void remove(Long id) {
+        autorizar();
+        repo.delete(buscar(id));
+    }
+    @Transactional
+    public ProfessorResponse atualizarDados(Long id, ProfessorRequest request) {
+        autorizar();
+        Professor professor = buscar(id);
+        preencher(professor, request);
+        return ProfessorResponse.from(repo.save(professor));
+    }
+    @Transactional
+    public ProfessorResponse salva(ProfessorRequest request) {
+        autorizar();
+        Professor professor = new Professor();
+        professor.setAcademia(permissoes.academiaAtual());
+        preencher(professor, request);
+        return ProfessorResponse.from(repo.save(professor));
+    }
+    private Professor buscar(Long id) {
+        return repo.findByIdAndAcademiaId(id, permissoes.academiaAtualId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Professor nao encontrado"));
+    }
+    private void preencher(Professor professor, ProfessorRequest request) {
+        professor.setNome(request.nome());
+        professor.setCpf(request.cpf());
+        professor.setEspecialidade(request.especialidade());
+        professor.setContato(request.contato());
     }
 }
